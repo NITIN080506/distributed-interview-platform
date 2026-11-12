@@ -1,12 +1,13 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { Code2, Terminal, LogOut, User, Sparkles, Activity } from 'lucide-react';
+import { Terminal, LogOut, ChevronDown, Radio, Shield } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated, isInterviewer } = useAuth();
   const { isConnected } = useSocket();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -14,105 +15,104 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const isActive = (path) => location.pathname === path;
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#0f172a]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-[1px] shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all duration-300">
-              <div className="h-full w-full bg-slate-950 rounded-[11px] flex items-center justify-center">
-                <Code2 className="h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
-              </div>
+    <header className="h-12 border-b border-white/[0.06] bg-[#090a0d]/95 backdrop-blur-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+        {/* Left: Brand & Navigation */}
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="h-6 w-6 rounded-md bg-[#161a23] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500/40 transition-colors">
+              <Terminal className="h-3.5 w-3.5" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-bold tracking-tight text-white text-lg">
-                CodePulse
-                <span className="text-[10px] font-semibold uppercase tracking-wider bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-500/20">
-                  Live
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono -mt-0.5">Distributed Sandbox v1.0</p>
-            </div>
+            <span className="text-sm font-semibold tracking-tight text-white flex items-center gap-1.5">
+              CodePulse
+              <span className="text-[10px] font-mono text-zinc-500 font-normal">v1.2</span>
+            </span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+          <div className="h-3.5 w-[1px] bg-white/[0.08]" />
+
+          <nav className="flex items-center gap-1">
             <Link
               to="/problems"
-              className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                isActive('/problems')
+                  ? 'text-white bg-white/[0.06]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
+              }`}
             >
-              Problem Set
+              Problem Bank
             </Link>
             <Link
               to="/sessions"
-              className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                isActive('/sessions')
+                  ? 'text-white bg-white/[0.06]'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
+              }`}
             >
               Interviews
             </Link>
           </nav>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-4">
-          {/* Real-Time WebSocket Telemetry Status */}
-          <div
-            className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono border ${
-              isConnected
-                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
-                : 'bg-amber-950/40 border-amber-500/30 text-amber-400'
-            }`}
-            title={isConnected ? 'Connected to WebSocket Realtime Cluster' : 'Connecting to Cluster...'}
-          >
+        {/* Right: Telemetry Ping & User Menu */}
+        <div className="flex items-center gap-3">
+          {/* Real-time Socket Health Pill */}
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-white/[0.03] border border-white/[0.06] text-zinc-400">
             <span
-              className={`h-2 w-2 rounded-full ${
-                isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+              className={`h-1.5 w-1.5 rounded-full ${
+                isConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
               }`}
             />
-            {isConnected ? 'CLUSTER ONLINE' : 'CONNECTING...'}
+            <span className="text-[10px] uppercase tracking-wide">
+              {isConnected ? 'cluster live' : 'reconnecting'}
+            </span>
           </div>
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-sm">
-                <div className="h-7 w-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-semibold text-xs">
-                  {user.name.charAt(0)}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06]">
+                <div className="h-5 w-5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-[11px] font-bold">
+                  {user.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="hidden sm:block text-left">
-                  <p className="text-xs font-medium text-slate-200 leading-tight">{user.name}</p>
-                  <span
-                    className={`inline-block text-[10px] font-mono uppercase px-1 rounded ${
-                      isInterviewer
-                        ? 'text-purple-400 bg-purple-500/10'
-                        : 'text-cyan-400 bg-cyan-500/10'
-                    }`}
-                  >
-                    {user.role}
-                  </span>
-                </div>
+                <span className="text-xs text-zinc-200 font-medium max-w-[120px] truncate">
+                  {user.name}
+                </span>
+                <span
+                  className={`text-[9px] font-mono font-medium uppercase px-1 py-0.2 rounded border ${
+                    isInterviewer
+                      ? 'bg-purple-500/10 text-purple-300 border-purple-500/20'
+                      : 'bg-zinc-800 text-zinc-400 border-zinc-700/50'
+                  }`}
+                >
+                  {user.role}
+                </span>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                title="Sign Out"
+                className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
+                title="Sign out"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <Link
                 to="/login"
-                className="px-3.5 py-1.5 text-sm font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
-                className="px-3.5 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-sm shadow-blue-500/20 transition-all"
+                className="text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-md transition-colors shadow-sm"
               >
-                Get Started
+                Sign Up
               </Link>
             </div>
           )}

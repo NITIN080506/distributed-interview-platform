@@ -20,7 +20,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/problems');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to sign in. Check your credentials.');
+      setError(err.response?.data?.error || 'Invalid credentials.');
     } finally {
       setLoading(false);
     }
@@ -36,108 +36,98 @@ export default function LoginPage() {
       await login(demoEmail, 'password123');
       navigate('/problems');
     } catch (err) {
-      setError(err.response?.data?.error || 'Database is not yet initialized or connected.');
+      setError(err.response?.data?.error || 'Database connection error.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-b from-[#0b0f17] via-[#0f172a] to-[#0b0f17]">
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500" />
-
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Welcome back</h2>
-            <p className="text-sm text-slate-400 mt-1">Sign in to your collaborative interview workspace</p>
+    <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-4 bg-[#090a0d]">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <div className="h-8 w-8 rounded-lg bg-[#141720] border border-white/10 flex items-center justify-center text-blue-400 mx-auto mb-3">
+            <Terminal className="h-4 w-4" />
           </div>
+          <h2 className="text-lg font-bold tracking-tight text-white">Sign in to CodePulse</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Distributed Real-Time Code Execution Platform</p>
+        </div>
 
+        <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl p-5 shadow-xl">
           {error && (
-            <div className="mb-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+            <div className="mb-4 p-2.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
+              <label className="block text-zinc-400 mb-1 font-medium">Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                required
+                className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors"
-                />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-zinc-400 font-medium">Password</label>
               </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+              />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-2 py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
-              <ArrowRight className="h-4 w-4" />
+              {loading ? 'Authenticating...' : 'Continue'}
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </form>
 
-          {/* Quick Demo Logins for easy evaluation */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <p className="text-xs text-slate-400 font-medium mb-3 text-center">
-              Quick 1-Click Demo Accounts:
+          {/* Quick Demo Access */}
+          <div className="mt-5 pt-4 border-t border-white/[0.06]">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 text-center mb-2.5">
+              1-Click Demo Profiles
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickLogin('interviewer@example.com')}
-                className="px-3 py-2 text-xs font-medium rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 hover:bg-purple-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-1.5 px-2 rounded bg-white/[0.03] border border-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.06] text-[11px] font-medium transition-colors"
               >
-                <Shield className="h-3.5 w-3.5" />
                 Interviewer
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin('candidate@example.com')}
-                className="px-3 py-2 text-xs font-medium rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 hover:bg-cyan-500/20 transition-colors flex items-center justify-center gap-1.5"
+                className="py-1.5 px-2 rounded bg-white/[0.03] border border-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.06] text-[11px] font-medium transition-colors"
               >
-                <Terminal className="h-3.5 w-3.5" />
                 Candidate
               </button>
             </div>
           </div>
-
-          <p className="text-center text-sm text-slate-400 mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
-              Create an account
-            </Link>
-          </p>
         </div>
+
+        <p className="text-center text-xs text-zinc-500 mt-4">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-zinc-300 hover:text-white underline">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );

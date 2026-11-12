@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Video, Plus, Calendar, Clock, ArrowRight, UserCheck, Code, Sparkles } from 'lucide-react';
+import { Plus, ArrowRight, UserCheck, Code, Calendar, X } from 'lucide-react';
 
 export default function SessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Modal state
+
+  // Modal State
   const [title, setTitle] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
   const [problemId, setProblemId] = useState('');
@@ -53,7 +53,7 @@ export default function SessionsPage() {
     setSubmitting(true);
     try {
       const { data } = await api.post('/sessions', {
-        title: title || 'Technical Coding Interview',
+        title: title || 'Technical Interview Session',
         candidateEmail,
         problemId,
         language,
@@ -61,7 +61,6 @@ export default function SessionsPage() {
       setIsModalOpen(false);
       navigate(`/room/${data.session.id}`);
     } catch (err) {
-      console.error('Failed to create session:', err);
       alert(err.response?.data?.error || 'Failed to create session.');
     } finally {
       setSubmitting(false);
@@ -69,28 +68,22 @@ export default function SessionsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-white/[0.06]">
         <div>
-          <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold tracking-wide uppercase">
-            <Video className="h-4 w-4" />
-            Interview Rooms
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mt-1">
-            Active Collaborative Sessions
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Real-time multi-user Monaco editor synchronization with automated Docker container evaluation.
+          <h1 className="text-xl font-bold text-white tracking-tight">Technical Interview Sessions</h1>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Active and scheduled collaborative rooms with live Monaco editor sync and sandboxed execution.
           </p>
         </div>
 
         {isInterviewer && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-md transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Schedule Interview
           </button>
         )}
@@ -98,78 +91,73 @@ export default function SessionsPage() {
 
       {/* Sessions Grid */}
       {loading ? (
-        <div className="py-16 text-center text-slate-400">
-          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          Loading your active interview rooms...
+        <div className="py-16 text-center text-zinc-500">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          Loading interview rooms...
         </div>
       ) : sessions.length === 0 ? (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-12 text-center max-w-xl mx-auto">
-          <div className="h-12 w-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
-            <Video className="h-6 w-6" />
-          </div>
-          <h3 className="text-lg font-bold text-white mb-1">No Active Interview Sessions</h3>
-          <p className="text-sm text-slate-400 mb-6">
-            Get started by scheduling a new interview session or pick a problem from the Problem Bank.
+        <div className="border border-white/[0.06] rounded-lg p-10 text-center bg-[#0c0d12] max-w-lg mx-auto">
+          <h3 className="text-sm font-semibold text-white mb-1">No Active Interviews</h3>
+          <p className="text-xs text-zinc-400 mb-4">
+            Schedule a new interview session to start live coding with candidates.
           </p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
-            >
-              Create New Session
-            </button>
-            <Link
-              to="/problems"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition-colors"
-            >
-              Browse Problems
-            </Link>
-          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-md transition-colors"
+          >
+            Create Session
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sessions.map((sess) => (
             <div
               key={sess.id}
-              className="bg-slate-900/60 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-6 transition-all shadow-lg flex flex-col justify-between group"
+              className="border border-white/[0.06] hover:border-white/10 rounded-lg p-4 bg-[#0c0d12] transition-colors flex flex-col justify-between group"
             >
               <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="flex items-center gap-1 text-[10px] font-mono font-medium uppercase text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     {sess.status}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-500">
+                  <span className="text-[10px] font-mono text-zinc-500">
                     {new Date(sess.createdAt).toLocaleDateString()}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                <h3 className="text-sm font-semibold text-zinc-200 group-hover:text-blue-400 transition-colors line-clamp-1 mb-3">
                   {sess.title}
                 </h3>
 
-                <div className="mt-4 space-y-2 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-purple-400 shrink-0" />
-                    <span>Host: <strong className="text-slate-200">{sess.interviewer?.name}</strong></span>
+                <div className="space-y-1.5 text-xs text-zinc-400">
+                  <div className="flex items-center gap-1.5">
+                    <UserCheck className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                    <span className="truncate">
+                      Interviewer: <strong className="text-zinc-200 font-medium">{sess.interviewer?.name}</strong>
+                    </span>
                   </div>
                   {sess.problem && (
-                    <div className="flex items-center gap-2">
-                      <Code className="h-4 w-4 text-cyan-400 shrink-0" />
-                      <span>Task: <strong className="text-slate-200">{sess.problem.title}</strong></span>
+                    <div className="flex items-center gap-1.5">
+                      <Code className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                      <span className="truncate">
+                        Task: <strong className="text-zinc-200 font-medium">{sess.problem.title}</strong>
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-xs font-mono text-slate-500 uppercase">{sess.language || 'python'}</span>
+              <div className="mt-4 pt-3 border-t border-white/[0.04] flex items-center justify-between">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase">
+                  {sess.language || 'python'}
+                </span>
                 <Link
                   to={`/room/${sess.id}`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition-all"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Join Room
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>
@@ -179,36 +167,37 @@ export default function SessionsPage() {
 
       {/* Modal: Schedule Session */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl relative">
-            <h2 className="text-xl font-bold text-white mb-1">Create Technical Interview</h2>
-            <p className="text-xs text-slate-400 mb-6">
-              Spin up a sandboxed live interview room with real-time editor synchronization.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="bg-[#0f1117] border border-white/10 rounded-xl p-5 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] mb-4">
+              <h2 className="text-sm font-bold text-white">Create Interview Session</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 text-zinc-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleCreateSession} className="space-y-4">
+            <form onSubmit={handleCreateSession} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Session Title
-                </label>
+                <label className="block text-zinc-400 mb-1 font-medium">Session Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Senior Backend Engineer - Round 1"
+                  placeholder="e.g. Senior Software Engineer - Round 1"
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Assign Problem Challenge
-                </label>
+                <label className="block text-zinc-400 mb-1 font-medium">Problem Challenge</label>
                 <select
                   value={problemId}
                   onChange={(e) => setProblemId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 focus:outline-none focus:border-blue-500"
                 >
                   {problems.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -219,47 +208,45 @@ export default function SessionsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Candidate Email (Optional)
-                </label>
+                <label className="block text-zinc-400 mb-1 font-medium">Candidate Email (Optional)</label>
                 <input
                   type="email"
                   value={candidateEmail}
                   onChange={(e) => setCandidateEmail(e.target.value)}
                   placeholder="candidate@example.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                  Primary Language
-                </label>
+                <label className="block text-zinc-400 mb-1 font-medium">Initial Language</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 focus:outline-none focus:border-blue-500"
                 >
                   <option value="python">Python 3.10</option>
                   <option value="javascript">JavaScript (Node 20)</option>
                   <option value="cpp">C++17 (GCC 12)</option>
+                  <option value="java">Java 17 (OpenJDK)</option>
+                  <option value="go">Go 1.21</option>
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white"
+                  className="px-3 py-1.5 rounded-md text-zinc-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-all disabled:opacity-50"
+                  className="px-4 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Creating Room...' : 'Start Session'}
+                  {submitting ? 'Creating...' : 'Create Session'}
                 </button>
               </div>
             </form>
