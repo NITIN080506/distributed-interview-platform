@@ -1,0 +1,26 @@
+{
+  "name": "distributed-interview-platform",
+  "version": "1.0.0",
+  "description": "Distributed Real-Time Code Execution & Interview Platform",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix worker && npm install --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:worker": "npm run dev --prefix worker",
+    "dev:client": "npm run dev --prefix client",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "keywords": [
+    "real-time",
+    "code-execution",
+    "docker-sandbox",
+    "redis",
+    "websockets",
+    "react",
+    "nodejs",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "MIT"
+}
