@@ -1,0 +1,20 @@
+{
+  "name": "interview-platform-worker",
+  "version": "1.0.0",
+  "description": "Distributed Code Execution Engine & Sandbox Worker",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "bullmq": "^5.41.6",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
