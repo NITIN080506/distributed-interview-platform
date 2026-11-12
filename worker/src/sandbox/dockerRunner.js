@@ -18,10 +18,10 @@ const LANGUAGE_CONFIGS = {
     extension: 'py',
     dockerImage: 'python:3.10-slim',
     getDockerCmd: (filename) => ['python', filename],
-    getLocalCmd: (filepath) => {
-      // Prefer python3 or python
-      return { cmd: process.platform === 'win32' ? 'python' : 'python3', args: [filepath] };
-    },
+    getLocalCmd: (filepath) => ({
+      cmd: process.platform === 'win32' ? 'python' : 'python3',
+      args: [filepath],
+    }),
   },
   javascript: {
     extension: 'js',
@@ -32,13 +32,36 @@ const LANGUAGE_CONFIGS = {
   cpp: {
     extension: 'cpp',
     dockerImage: 'gcc:12',
-    compileDocker: (src, out) => `g++ -O2 ${src} -o ${out}`,
+    getDockerCmd: (filename) => [
+      'sh',
+      '-c',
+      `g++ -O2 -std=c++17 ${filename} -o /tmp/solution && /tmp/solution`,
+    ],
     getLocalCmd: (filepath) => {
-      // Local fallback for cpp if g++ is installed
       const outPath = filepath.replace(/\.cpp$/, process.platform === 'win32' ? '.exe' : '.out');
-      execSync(`g++ -O2 "${filepath}" -o "${outPath}"`, { timeout: 10000 });
+      execSync(`g++ -O2 -std=c++17 "${filepath}" -o "${outPath}"`, { timeout: 10000 });
       return { cmd: outPath, args: [] };
     },
+  },
+  java: {
+    extension: 'java',
+    dockerImage: 'openjdk:17-slim',
+    getDockerCmd: (filename) => [
+      'sh',
+      '-c',
+      `javac ${filename} && java Solution`,
+    ],
+    getLocalCmd: (filepath) => {
+      const dir = path.dirname(filepath);
+      execSync(`javac "${filepath}"`, { timeout: 10000, cwd: dir });
+      return { cmd: 'java', args: ['-cp', dir, 'Solution'] };
+    },
+  },
+  go: {
+    extension: 'go',
+    dockerImage: 'golang:1.21-alpine',
+    getDockerCmd: (filename) => ['go', 'run', filename],
+    getLocalCmd: (filepath) => ({ cmd: 'go', args: ['run', filepath] }),
   },
 };
 
@@ -59,13 +82,15 @@ export async function executeInDocker({
 
   // Create isolated temp workspace
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'interview-exec-'));
-  const srcFileName = `solution.${config.extension}`;
+  // Java files must be named Solution.java if class is Solution
+  const baseName = language === 'java' ? 'Solution' : 'solution';
+  const srcFileName = `${baseName}.${config.extension}`;
   const srcFilePath = path.join(tempDir, srcFileName);
   fs.writeFileSync(srcFilePath, code, 'utf-8');
 
   const normalizedDir = tempDir.replace(/\\/g, '/');
 
-  // Strict resource flags:
+  // Hardened Security flags:
   // --network none : isolate network
   // --memory : limit RAM
   // --cpus : limit CPU percentage
@@ -102,12 +127,27 @@ export async function executeLocalSandbox({
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'interview-exec-local-'));
-  const srcFileName = `solution.${config.extension}`;
+  const baseName = language === 'java' ? 'Solution' : 'solution';
+  const srcFileName = `${baseName}.${config.extension}`;
   const srcFilePath = path.join(tempDir, srcFileName);
   fs.writeFileSync(srcFilePath, code, 'utf-8');
 
-  const { cmd, args } = config.getLocalCmd(srcFilePath);
-  return runProcessWithLimits(cmd, args, input, timeLimitMs, tempDir);
+  try {
+    const { cmd, args } = config.getLocalCmd(srcFilePath);
+    return runProcessWithLimits(cmd, args, input, timeLimitMs, tempDir);
+  } catch (err) {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch (_) {}
+    return {
+      exitCode: 1,
+      runtimeMs: 0,
+      memoryKb: 0,
+      stdout: '',
+      stderr: `Compilation error: ${err.message}`,
+      isTimeout: false,
+    };
+  }
 }
 
 /**

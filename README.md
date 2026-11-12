@@ -1,15 +1,17 @@
 # Distributed Real-Time Code Execution & Interview Platform
 
-> A production-grade, distributed collaborative coding platform designed for technical interviews and competitive programming. Features secure multi-language code execution inside resource-constrained Docker containers, real-time editor synchronization over WebSockets, an asynchronous Redis-backed worker queue, and detailed telemetry analysis.
+> A production-grade, distributed collaborative coding platform designed for technical interviews, system design rounds, and competitive programming. Features secure multi-language code execution inside resource-constrained Docker containers, real-time editor synchronization over WebSockets, in-browser WebRTC video calls, collaborative canvas whiteboard, interviewer rubrics, AI complexity analysis, and keystroke audit playback.
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ System Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     React 19 Frontend (Vite + Tailwind)                 │
-│  - Collaborative Monaco Editor        - Real-Time Room Presence & Chat  │
+│  - Collaborative Monaco Editor        - In-Browser WebRTC Video Calling │
+│  - Real-Time Synced Whiteboard Canvas - Interviewer Rubric Scorecards   │
+│  - AI Time/Space Complexity Analyzer  - Keystroke Time-Machine Playback │
 │  - Automated Test Case Runner         - Execution Telemetry (RAM, Time) │
 └───────────────────▲─────────────────────────────────▲───────────────────┘
                     │ REST APIs (JWT Auth, Problems)  │ WebSockets (Socket.io)
@@ -17,8 +19,9 @@
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                   Node.js / Express API Gateway                         │
 │  - JWT Authentication & RBAC (Candidate vs Interviewer vs Admin)       │
-│  - PostgreSQL + Prisma ORM (Problems, Testcases, Sessions, Telemetry)   │
-│  - Collaborative Room Socket Server & Presence Clustering               │
+│  - PostgreSQL + Prisma ORM (Problems, Sessions, Scorecards, Audits)     │
+│  - WebRTC Signaling Cluster (SDP Offers, Answers, ICE Candidates)       │
+│  - Real-Time Canvas Whiteboard Vector Synchronizer                      │
 │  - Asynchronous Redis Queue Producer (BullMQ)                           │
 └───────────────────▲─────────────────────────────────▲───────────────────┘
                     │                                 │
@@ -29,78 +32,64 @@
 ┌─────────────────────────────────────────────────────────────────────────┐
 │               Background Worker & Sandboxed Docker Engine               │
 │  - Distributed BullMQ Worker Consumer                                   │
-│  - Isolated Docker Container Execution (--network none, --memory 128m)  │
-│  - Multi-Language Support: Python 3.10, Node.js 20, C++17 (GCC 12)      │
+│  - Isolated Containers (--network none, --memory 128m, --cpus 0.5)      │
+│  - Multi-Language: Python 3.10, Node.js 20, C++17, Java 17, Go 1.21    │
 │  - Telemetry Engine: Wall-clock Runtime (ms), Peak Memory (KB), CPU %   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚡ Core Technical Highlights
+## ⚡ Flagship Features
 
-### 1. Sandboxed Multi-Language Docker Execution
-- **Isolated Containers**: Submissions are mounted into ephemeral containers (`python:3.10-slim`, `node:20-alpine`, `gcc:12`).
-- **Resource Constraints**:
-  - Memory limit: `--memory=128m` (prevents memory starvation / fork bombs)
-  - CPU limit: `--cpus=0.5` (prevents CPU exhaustion)
-  - Process limit: `--pids-limit=64` (mitigates recursive fork bomb attacks)
-  - Network isolation: `--network=none` (blocks network calls, socket listeners, and reverse shells)
-- **Execution Telemetry**: High-resolution wall-clock timer (`process.hrtime.bigint()`), peak RSS memory monitoring, exit code tracking, stdout/stderr capture, and automated test-case evaluation.
-- **Resilient Fallback Runner**: Includes a safe local subprocess execution mode for rapid development and testing when the Docker daemon is booting.
+### 1. Sandboxed Multi-Language Docker Sandbox
+- **5 Execution Environments**: Python 3.10, Node.js 20, C++17 (GCC 12), Java 17 (OpenJDK), and Go 1.21.
+- **Hardened Container Security**:
+  - `--network none`: completely isolated from internet, stopping socket listeners & reverse shells.
+  - `--memory 128m`: hard memory ceiling preventing memory leaks and out-of-memory crashes.
+  - `--cpus 0.5`: throttled CPU quota preventing system hogging.
+  - `--pids-limit 64`: terminates fork bombs immediately.
+  - Wall-clock timeout enforcement (`SIGKILL` after 3000ms).
+- **Execution Telemetry**: Accurate runtime ($ms$), peak resident set size memory ($KB$), exit code tracking, stdout/stderr streams, and automated test-case evaluation.
 
-### 2. Real-Time Editor Synchronization & WebSockets
-- **Monaco Code Editor**: Full VS Code-grade coding experience with syntax highlighting and indentation.
-- **Socket.io Clustering**: Real-time room broadcasts for code synchronization, cursor movement, peer presence, language switching, and live chat.
-- **Pub/Sub Telemetry Streaming**: Background workers publish execution telemetry over Redis Pub/Sub directly to the WebSocket server, pushing test case results to client browsers in milliseconds.
+### 2. In-Browser WebRTC Peer-to-Peer Video Call Grid
+- Video and audio streams right inside the interview room.
+- Camera toggle, Microphone mute/unmute, and high-definition Screen Sharing.
+- Automatic fallback gracefully handling environments where hardware cameras are unavailable.
 
-### 3. Asynchronous Worker Queue (Redis + BullMQ)
-- API gateway immediately returns `202 Accepted` with a `submissionId` without blocking HTTP worker threads.
-- Jobs are dispatched to Redis BullMQ queue with automatic retries, backoff strategies, and concurrent consumer scaling.
+### 3. Real-Time Collaborative Canvas Whiteboard
+- Dedicated vector canvas for system architecture diagrams, graph tracing, and data structure visualization.
+- Tools: Freehand pen, lines, rectangles, circles, erasers, stroke colors, and stroke widths.
+- Live bidirectional stroke synchronization across all connected interviewers and candidates.
+- One-click PNG diagram export.
 
-### 4. Relational Data Modeling & RBAC (PostgreSQL + Prisma)
-- Strict Role-Based Access Control (`CANDIDATE`, `INTERVIEWER`, `ADMIN`).
-- Normalized relational schemas for `User`, `Problem`, `TestCase` (public vs hidden), `InterviewSession`, `Submission`, and `ExecutionTelemetry`.
+### 4. 4-Competency Interviewer Grading Rubric & Scorecards
+- Structured scoring matrix (1 to 5 stars):
+  1. *Problem Solving & Algorithmic Logic*
+  2. *Data Structures & Algorithmic Complexity*
+  3. *Code Cleanliness, Modularity & Edge Cases*
+  4. *Technical Articulation & Thought Process*
+- Hire Decision Recommendations: `Strong Hire`, `Hire`, `Leaning Hire`, `Leaning No Hire`, `Strong No Hire`.
+- Private recruiter/interviewer notes and downloadable Markdown Evaluation Summary Reports.
+
+### 5. AI Algorithmic Complexity & Edge-Case Analyzer
+- Evaluates estimated Time Complexity (e.g. $O(N)$ vs $O(N \log N)$ vs $O(N^2)$) and Space Complexity ($O(1)$ vs $O(N)$).
+- Highlights critical edge cases to watch out for (e.g. empty arrays, single-element collections, integer overflow).
+
+### 6. Keystroke Playback & Time-Machine (Anti-Cheat Audit)
+- Records timestamped keystroke deltas and code size progression into PostgreSQL.
+- Interactive timeline scrubber slider allowing interviewers to replay how the candidate arrived at the solution step-by-step, spotting sudden large pasted code blocks.
 
 ---
 
 ## 🚀 Quickstart Guide
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher; v22 recommended)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for PostgreSQL, Redis, and containerized sandboxes)
-- [Git](https://git-scm.com/)
-
----
-
-### Step 1: Clone and Install Dependencies
-
-```bash
-# Install root, server, worker, and client dependencies
-npm run install:all
-```
-
----
-
-### Step 2: Spin Up Infrastructure (PostgreSQL & Redis)
-
-Start the PostgreSQL and Redis containers using Docker Compose:
-
+### Step 1: Spin Up Infrastructure (PostgreSQL & Redis)
 ```bash
 docker compose up -d
 ```
 
-Verify containers are healthy:
-```bash
-docker ps
-```
-
----
-
-### Step 3: Run Database Migrations & Seed Data
-
-Push the Prisma schema to PostgreSQL and seed initial interview problems and demo users:
-
+### Step 2: Push Database Schema & Seed Problems
 ```bash
 cd server
 npm run prisma:push
@@ -112,60 +101,19 @@ cd ..
 > - **Interviewer:** `interviewer@example.com` / `password123`
 > - **Candidate:** `candidate@example.com` / `password123`
 
----
-
-### Step 4: Start the Services
-
-Open three terminal windows (or use the provided scripts):
-
-**Terminal 1 — API Gateway & WebSocket Server:**
-```bash
-npm run dev:server
-# Running on http://localhost:5000
+### Step 3: Launch Services
+Run the 1-click startup script:
+```powershell
+.\start-dev.bat
 ```
+Or start each service manually:
+- `npm run dev:server` (Port 5000)
+- `npm run dev:worker` (Redis Queue Worker)
+- `npm run dev:client` (Port 5173)
 
-**Terminal 2 — Background Code Execution Worker:**
-```bash
-npm run dev:worker
-# Listening to BullMQ 'code-submissions' queue
-```
-
-**Terminal 3 — React Client:**
-```bash
-npm run dev:client
-# Running on http://localhost:5173
-```
-
----
-
-## 🌐 API Reference
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Public | Register new user as Candidate or Interviewer |
-| `POST` | `/api/auth/login` | Public | Authenticate user & return JWT token |
-| `GET` | `/api/auth/me` | Authenticated | Retrieve current authenticated user profile |
-| `GET` | `/api/problems` | Authenticated | List all algorithmic problems with filters |
-| `GET` | `/api/problems/:id` | Authenticated | Retrieve problem description & public test cases |
-| `POST` | `/api/problems` | Interviewer | Create new problem with public and hidden test cases |
-| `POST` | `/api/submissions` | Authenticated | Enqueue code execution job into Redis queue |
-| `GET` | `/api/submissions/:id` | Authenticated | Fetch execution status and telemetry results |
-| `GET` | `/api/sessions` | Authenticated | List active and scheduled interview rooms |
-| `POST` | `/api/sessions` | Interviewer | Create new interview room and invite candidate |
-| `GET` | `/api/sessions/:id` | Authenticated | Fetch session details, code snapshot, and problem |
-
----
-
-## 🔒 Docker Sandbox Security Checklist
-
-- [x] Ephemeral containers (`--rm`) destroyed immediately after execution.
-- [x] Network disabled (`--network none`) to prevent exfiltration or outbound connections.
-- [x] Memory bounded (`-m 128m`) to prevent RAM exhaustion.
-- [x] CPU quota throttled (`--cpus 0.5`) to prevent high system load.
-- [x] Process limits enforced (`--pids-limit 64`) to prevent fork bombs.
-- [x] Hard execution timeout enforced with `SIGKILL` after 3000ms.
+Open **http://localhost:5173** in your browser.
 
 ---
 
 ## 📄 License
-This project is open-source under the [MIT License](LICENSE).
+MIT License. Open-source for collaborative engineering and interview prep.

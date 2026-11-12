@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.js';
 import problemsRoutes from './routes/problems.js';
 import submissionsRoutes from './routes/submissions.js';
 import sessionsRoutes from './routes/sessions.js';
+import scorecardsRoutes from './routes/scorecards.js';
+import auditRoutes from './routes/audit.js';
 import { setupInterviewSockets } from './sockets/interviewSocket.js';
 
 dotenv.config();
@@ -45,6 +47,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/problems', problemsRoutes);
 app.use('/api/submissions', submissionsRoutes);
 app.use('/api/sessions', sessionsRoutes);
+app.use('/api/scorecards', scorecardsRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Socket.io Handlers
 setupInterviewSockets(io);

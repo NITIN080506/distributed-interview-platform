@@ -14,7 +14,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Code and language are required.' });
     }
 
-    const validLanguages = ['python', 'javascript', 'cpp', 'java'];
+    const validLanguages = ['python', 'javascript', 'cpp', 'java', 'go'];
     if (!validLanguages.includes(language.toLowerCase())) {
       return res.status(400).json({
         error: `Unsupported language. Supported: ${validLanguages.join(', ')}`,

@@ -36,18 +36,27 @@ enum SubmissionStatus {
   COMPILATION_ERROR
 }
 
-model User {
-  id                String             @id @default(uuid())
-  email             String             @unique
-  name              String
-  password          String
-  role              Role               @default(CANDIDATE)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+enum HireDecision {
+  STRONG_HIRE
+  HIRE
+  LEANING_HIRE
+  LEANING_NO_HIRE
+  STRONG_NO_HIRE
+}
 
-  interviewsHosted  InterviewSession[] @relation("InterviewerRelation")
+model User {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  name               String
+  password           String
+  role               Role               @default(CANDIDATE)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  interviewsHosted   InterviewSession[] @relation("InterviewerRelation")
   interviewsAttended InterviewSession[] @relation("CandidateRelation")
-  submissions       Submission[]
+  submissions        Submission[]
+  scorecardsCreated  Scorecard[]
 
   @@map("users")
 }
@@ -59,7 +68,7 @@ model Problem {
   description   String             @db.Text
   difficulty    Difficulty         @default(MEDIUM)
   tags          String[]           @default([])
-  starterCodes  Json               // e.g. { "python": "...", "javascript": "...", "cpp": "...", "java": "..." }
+  starterCodes  Json               // { "python": "...", "javascript": "...", "cpp": "...", "java": "...", "go": "..." }
   timeLimitMs   Int                @default(2000)
   memoryLimitMb Int                @default(128)
   createdAt     DateTime           @default(now())
@@ -88,26 +97,65 @@ model TestCase {
 }
 
 model InterviewSession {
-  id            String        @id @default(uuid())
+  id            String             @id @default(uuid())
   title         String
-  status        SessionStatus @default(LIVE)
-  code          String        @default("") @db.Text
-  language      String        @default("python")
+  status        SessionStatus      @default(LIVE)
+  code          String             @default("") @db.Text
+  language      String             @default("python")
   interviewerId String
   candidateId   String?
   problemId     String?
-  notes         String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  notes         String?            @db.Text
+  whiteboardData Json?             // Stores vector paths/drawing operations
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
-  interviewer   User          @relation("InterviewerRelation", fields: [interviewerId], references: [id])
-  candidate     User?         @relation("CandidateRelation", fields: [candidateId], references: [id])
-  problem       Problem?      @relation(fields: [problemId], references: [id])
+  interviewer   User               @relation("InterviewerRelation", fields: [interviewerId], references: [id])
+  candidate     User?              @relation("CandidateRelation", fields: [candidateId], references: [id])
+  problem       Problem?           @relation(fields: [problemId], references: [id])
   submissions   Submission[]
+  scorecard     Scorecard?
+  auditLogs     InterviewAuditLog[]
 
   @@index([interviewerId])
   @@index([candidateId])
   @@map("interview_sessions")
+}
+
+model Scorecard {
+  id                    String        @id @default(uuid())
+  sessionId             String        @unique
+  interviewerId         String
+  problemSolvingRating  Int           @default(3) // 1-5
+  dsaRating             Int           @default(3) // 1-5
+  codeQualityRating     Int           @default(3) // 1-5
+  communicationRating   Int           @default(3) // 1-5
+  decision              HireDecision  @default(HIRE)
+  notes                 String?       @db.Text
+  strengths             String?       @db.Text
+  weaknesses            String?       @db.Text
+  isSubmitted           Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  session               InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  interviewer           User             @relation(fields: [interviewerId], references: [id])
+
+  @@map("scorecards")
+}
+
+model InterviewAuditLog {
+  id          String           @id @default(uuid())
+  sessionId   String
+  eventType   String           // 'KEYSTROKE', 'RUN_CODE', 'SUBMIT_CODE', 'LANGUAGE_CHANGE'
+  codeLength  Int              @default(0)
+  delta       String?          @db.Text
+  timestamp   DateTime         @default(now())
+
+  session     InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("interview_audit_logs")
 }
 
 model Submission {

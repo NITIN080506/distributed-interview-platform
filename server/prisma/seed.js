@@ -4,11 +4,13 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding database with production problem set and users...');
 
-  // 1. Clean existing records if any
+  // 1. Clean existing records safely
   await prisma.executionTelemetry.deleteMany();
   await prisma.submission.deleteMany();
+  await prisma.scorecard.deleteMany();
+  await prisma.interviewAuditLog.deleteMany();
   await prisma.interviewSession.deleteMany();
   await prisma.testCase.deleteMany();
   await prisma.problem.deleteMany();
@@ -40,19 +42,17 @@ async function main() {
   console.log(`   Interviewer: ${interviewer.email}`);
   console.log(`   Candidate:   ${candidate.email}`);
 
-  // 4. Create Problems
+  // 4. Create Curated Interview Problem Bank
   // Problem 1: Two Sum
   const twoSum = await prisma.problem.create({
     data: {
       title: 'Two Sum',
       slug: 'two-sum',
       difficulty: 'EASY',
-      tags: ['Array', 'Hash Table'],
+      tags: ['Array', 'Hash Table', 'FAANG'],
       description: `Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`.
 
-You may assume that each input would have exactly one solution, and you may not use the same element twice.
-
-Output the two indices as space-separated integers, or JSON array format.
+Output the two indices as space-separated integers.
 
 ### Example 1:
 \`\`\`
@@ -75,7 +75,6 @@ Output:
         python: `import sys
 
 def two_sum(nums, target):
-    # Write your solution here
     seen = {}
     for i, num in enumerate(nums):
         diff = target - num
@@ -98,9 +97,7 @@ function twoSum(nums, target) {
   const map = new Map();
   for (let i = 0; i < nums.length; i++) {
     const diff = target - nums[i];
-    if (map.has(diff)) {
-      return [map.get(diff), i];
-    }
+    if (map.has(diff)) return [map.get(diff), i];
     map.set(nums[i], i);
   }
   return [];
@@ -143,35 +140,71 @@ int main() {
     return 0;
 }
 `,
+        java: `import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        if (!sc.hasNextLine()) return;
+        String[] parts = sc.nextLine().trim().split("\\\\s+");
+        int target = sc.nextInt();
+        int[] nums = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);
+
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int diff = target - nums[i];
+            if (map.containsKey(diff)) {
+                System.out.println(map.get(diff) + " " + i);
+                return;
+            }
+            map.put(nums[i], i);
+        }
+    }
+}
+`,
+        go: `package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+    "strconv"
+    "strings"
+)
+
+func main() {
+    scanner := bufio.NewScanner(os.Stdin)
+    if !scanner.Scan() {
+        return
+    }
+    numsStr := strings.Fields(scanner.Text())
+    if !scanner.Scan() {
+        return
+    }
+    target, _ := strconv.Atoi(strings.TrimSpace(scanner.Text()))
+
+    seen := make(map[int]int)
+    for i, s := range numsStr {
+        n, _ := strconv.Atoi(s)
+        diff := target - n
+        if idx, ok := seen[diff]; ok {
+            fmt.Printf("%d %d\\n", idx, i)
+            return
+        }
+        seen[n] = i
+    }
+}
+`,
       },
       timeLimitMs: 2000,
       memoryLimitMb: 128,
       testCases: {
         create: [
-          {
-            input: '2 7 11 15\n9',
-            expectedOutput: '0 1',
-            isHidden: false,
-            order: 1,
-          },
-          {
-            input: '3 2 4\n6',
-            expectedOutput: '1 2',
-            isHidden: false,
-            order: 2,
-          },
-          {
-            input: '3 3\n6',
-            expectedOutput: '0 1',
-            isHidden: true,
-            order: 3,
-          },
-          {
-            input: '1 5 8 12 19 33\n31',
-            expectedOutput: '3 4',
-            isHidden: true,
-            order: 4,
-          },
+          { input: '2 7 11 15\n9', expectedOutput: '0 1', isHidden: false, order: 1 },
+          { input: '3 2 4\n6', expectedOutput: '1 2', isHidden: false, order: 2 },
+          { input: '3 3\n6', expectedOutput: '0 1', isHidden: true, order: 3 },
+          { input: '1 5 8 12 19 33\n31', expectedOutput: '3 4', isHidden: true, order: 4 },
         ],
       },
     },
@@ -186,11 +219,6 @@ int main() {
       tags: ['String', 'Stack'],
       description: `Given a string \`s\` containing just the characters \`'('\`, \`')'\`, \`'{'\`, \`'}'\`, \`'['\` and \`']'\`, determine if the input string is valid.
 
-An input string is valid if:
-1. Open brackets must be closed by the same type of brackets.
-2. Open brackets must be closed in the correct order.
-3. Every close bracket has a corresponding open bracket of the same type.
-
 Print \`true\` if valid, else \`false\`.
 
 ### Example 1:
@@ -199,14 +227,6 @@ Input:
 ()[]{}
 Output:
 true
-\`\`\`
-
-### Example 2:
-\`\`\`
-Input:
-(]
-Output:
-false
 \`\`\``,
       starterCodes: {
         python: `import sys
@@ -250,118 +270,130 @@ console.log(isValid(input) ? 'true' : 'false');
       memoryLimitMb: 128,
       testCases: {
         create: [
-          {
-            input: '()[]{}',
-            expectedOutput: 'true',
-            isHidden: false,
-            order: 1,
-          },
-          {
-            input: '(]',
-            expectedOutput: 'false',
-            isHidden: false,
-            order: 2,
-          },
-          {
-            input: '([{}])',
-            expectedOutput: 'true',
-            isHidden: true,
-            order: 3,
-          },
-          {
-            input: '([)]',
-            expectedOutput: 'false',
-            isHidden: true,
-            order: 4,
-          },
+          { input: '()[]{}', expectedOutput: 'true', isHidden: false, order: 1 },
+          { input: '(]', expectedOutput: 'false', isHidden: false, order: 2 },
+          { input: '([{}])', expectedOutput: 'true', isHidden: true, order: 3 },
+          { input: '([)]', expectedOutput: 'false', isHidden: true, order: 4 },
         ],
       },
     },
   });
 
-  // Problem 3: Longest Substring Without Repeating Characters
-  const longestSubstring = await prisma.problem.create({
+  // Problem 3: Number of Islands (Graph / BFS / DFS)
+  const numberOfIslands = await prisma.problem.create({
     data: {
-      title: 'Longest Substring Without Repeating Characters',
-      slug: 'longest-substring-without-repeating-characters',
+      title: 'Number of Islands',
+      slug: 'number-of-islands',
       difficulty: 'MEDIUM',
-      tags: ['String', 'Sliding Window', 'Hash Table'],
-      description: `Given a string \`s\`, find the length of the longest substring without repeating characters.
+      tags: ['Graph', 'BFS', 'DFS', 'Matrix'],
+      description: `Given an \`m x n\` 2D binary grid \`grid\` which represents a map of \`'1'\`s (land) and \`'0'\`s (water), return the number of islands.
 
-### Example 1:
+An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.
+
+First line: \`m n\`
+Following \`m\` lines: rows with \`n\` space-separated binary values.
+
+### Example:
 \`\`\`
 Input:
-abcabcbb
-Output:
-3
-\`\`\`
-Explanation: The answer is "abc", with the length of 3.
-
-### Example 2:
-\`\`\`
-Input:
-bbbbb
+4 5
+1 1 1 1 0
+1 1 0 1 0
+1 1 0 0 0
+0 0 0 0 0
 Output:
 1
 \`\`\``,
       starterCodes: {
         python: `import sys
 
-def length_of_longest_substring(s: str) -> int:
-    char_map = {}
-    left = 0
-    max_len = 0
-    for right, char in enumerate(s):
-        if char in char_map and char_map[char] >= left:
-            left = char_map[char] + 1
-        char_map[char] = right
-        max_len = max(max_len, right - left + 1)
-    return max_len
+def num_islands(grid):
+    if not grid:
+        return 0
+    m, n = len(grid), len(grid[0])
+    islands = 0
+
+    def dfs(r, c):
+        if r < 0 or r >= m or c < 0 or c >= n or grid[r][c] != '1':
+            return
+        grid[r][c] = '0'
+        dfs(r + 1, c)
+        dfs(r - 1, c)
+        dfs(r, c + 1)
+        dfs(r, c - 1)
+
+    for i in range(m):
+        for j in range(n):
+            if grid[i][j] == '1':
+                islands += 1
+                dfs(i, j)
+    return islands
 
 if __name__ == "__main__":
-    line = sys.stdin.read().rstrip('\\r\\n')
-    print(length_of_longest_substring(line))
+    lines = sys.stdin.read().splitlines()
+    if lines:
+        m, n = map(int, lines[0].split())
+        grid = [lines[i + 1].split() for i in range(m)]
+        print(num_islands(grid))
 `,
         javascript: `const fs = require('fs');
 
-function lengthOfLongestSubstring(s) {
-  const map = new Map();
-  let left = 0;
-  let maxLen = 0;
-  for (let right = 0; right < s.length; right++) {
-    const char = s[right];
-    if (map.has(char) && map.get(char) >= left) {
-      left = map.get(char) + 1;
-    }
-    map.set(char, right);
-    maxLen = Math.max(maxLen, right - left + 1);
+function numIslands(grid) {
+  if (!grid.length) return 0;
+  const m = grid.length;
+  const n = grid[0].length;
+  let count = 0;
+
+  function dfs(r, c) {
+    if (r < 0 || r >= m || c < 0 || c >= n || grid[r][c] !== '1') return;
+    grid[r][c] = '0';
+    dfs(r + 1, c);
+    dfs(r - 1, c);
+    dfs(r, c + 1);
+    dfs(r, c - 1);
   }
-  return maxLen;
+
+  for (let i = 0; i < m; i++) {
+    for (let j = 0; j < n; j++) {
+      if (grid[i][j] === '1') {
+        count++;
+        dfs(i, j);
+      }
+    }
+  }
+  return count;
 }
 
-const input = fs.readFileSync(0, 'utf-8').replace(/[\\r\\n]+$/, '');
-console.log(lengthOfLongestSubstring(input));
+const input = fs.readFileSync(0, 'utf-8').trim().split('\\n');
+if (input.length > 0) {
+  const [m, n] = input[0].trim().split(/\\s+/).map(Number);
+  const grid = [];
+  for (let i = 1; i <= m; i++) {
+    grid.push(input[i].trim().split(/\\s+/));
+  }
+  console.log(numIslands(grid));
+}
 `,
       },
-      timeLimitMs: 2000,
+      timeLimitMs: 2500,
       memoryLimitMb: 128,
       testCases: {
         create: [
           {
-            input: 'abcabcbb',
-            expectedOutput: '3',
+            input: '4 5\n1 1 1 1 0\n1 1 0 1 0\n1 1 0 0 0\n0 0 0 0 0',
+            expectedOutput: '1',
             isHidden: false,
             order: 1,
           },
           {
-            input: 'bbbbb',
-            expectedOutput: '1',
+            input: '4 5\n1 1 0 0 0\n1 1 0 0 0\n0 0 1 0 0\n0 0 0 1 1',
+            expectedOutput: '3',
             isHidden: false,
             order: 2,
           },
           {
-            input: 'pwwkew',
-            expectedOutput: '3',
+            input: '3 3\n0 0 0\n0 0 0\n0 0 0',
+            expectedOutput: '0',
             isHidden: true,
             order: 3,
           },
@@ -370,10 +402,138 @@ console.log(lengthOfLongestSubstring(input));
     },
   });
 
-  // 5. Create a Live Interview Session
+  // Problem 4: Coin Change (Dynamic Programming)
+  const coinChange = await prisma.problem.create({
+    data: {
+      title: 'Coin Change',
+      slug: 'coin-change',
+      difficulty: 'MEDIUM',
+      tags: ['Dynamic Programming', 'Breadth-First Search'],
+      description: `You are given an integer array \`coins\` representing coins of different denominations and an integer \`amount\` representing a total amount of money.
+
+Return the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return \`-1\`.
+
+### Example 1:
+\`\`\`
+Input:
+1 2 5
+11
+Output:
+3
+\`\`\`
+Explanation: 11 = 5 + 5 + 1`,
+      starterCodes: {
+        python: `import sys
+
+def coin_change(coins, amount):
+    dp = [float('inf')] * (amount + 1)
+    dp[0] = 0
+    for coin in coins:
+        for x in range(coin, amount + 1):
+            dp[x] = min(dp[x], dp[x - coin] + 1)
+    return dp[amount] if dp[amount] != float('inf') else -1
+
+if __name__ == "__main__":
+    lines = sys.stdin.read().splitlines()
+    if len(lines) >= 2:
+        coins = list(map(int, lines[0].split()))
+        amount = int(lines[1].strip())
+        print(coin_change(coins, amount))
+`,
+        javascript: `const fs = require('fs');
+
+function coinChange(coins, amount) {
+  const dp = new Array(amount + 1).fill(Infinity);
+  dp[0] = 0;
+  for (const coin of coins) {
+    for (let x = coin; x <= amount; x++) {
+      dp[x] = Math.min(dp[x], dp[x - coin] + 1);
+    }
+  }
+  return dp[amount] === Infinity ? -1 : dp[amount];
+}
+
+const input = fs.readFileSync(0, 'utf-8').trim().split('\\n');
+if (input.length >= 2) {
+  const coins = input[0].trim().split(/\\s+/).map(Number);
+  const amount = Number(input[1].trim());
+  console.log(coinChange(coins, amount));
+}
+`,
+      },
+      timeLimitMs: 2000,
+      memoryLimitMb: 128,
+      testCases: {
+        create: [
+          { input: '1 2 5\n11', expectedOutput: '3', isHidden: false, order: 1 },
+          { input: '2\n3', expectedOutput: '-1', isHidden: false, order: 2 },
+          { input: '1\n0', expectedOutput: '0', isHidden: true, order: 3 },
+          { input: '186 419 83 408\n6249', expectedOutput: '20', isHidden: true, order: 4 },
+        ],
+      },
+    },
+  });
+
+  // Problem 5: Trapping Rain Water (Hard)
+  const trappingRainWater = await prisma.problem.create({
+    data: {
+      title: 'Trapping Rain Water',
+      slug: 'trapping-rain-water',
+      difficulty: 'HARD',
+      tags: ['Two Pointers', 'Dynamic Programming', 'Monotonic Stack'],
+      description: `Given \`n\` non-negative integers representing an elevation map where the width of each bar is \`1\`, compute how much water it can trap after raining.
+
+### Example 1:
+\`\`\`
+Input:
+0 1 0 2 1 0 1 3 2 1 2 1
+Output:
+6
+\`\`\``,
+      starterCodes: {
+        python: `import sys
+
+def trap(height):
+    if not height:
+        return 0
+    left, right = 0, len(height) - 1
+    left_max, right_max = height[left], height[right]
+    water = 0
+
+    while left < right:
+        if left_max < right_max:
+            left += 1
+            left_max = max(left_max, height[left])
+            water += left_max - height[left]
+        else:
+            right -= 1
+            right_max = max(right_max, height[right])
+            water += right_max - height[right]
+    return water
+
+if __name__ == "__main__":
+    line = sys.stdin.read().strip()
+    if line:
+        heights = list(map(int, line.split()))
+        print(trap(heights))
+`,
+      },
+      timeLimitMs: 2000,
+      memoryLimitMb: 128,
+      testCases: {
+        create: [
+          { input: '0 1 0 2 1 0 1 3 2 1 2 1', expectedOutput: '6', isHidden: false, order: 1 },
+          { input: '4 2 0 3 2 5', expectedOutput: '9', isHidden: false, order: 2 },
+          { input: '1 2 3 4 5', expectedOutput: '0', isHidden: true, order: 3 },
+        ],
+      },
+    },
+  });
+
+  // 5. Create Live Technical Interview Session
   const sampleSession = await prisma.interviewSession.create({
     data: {
-      title: 'Technical Round: Senior Software Engineer',
+      title: 'System & Algorithm Evaluation: Senior Software Engineer',
       status: 'LIVE',
       interviewerId: interviewer.id,
       candidateId: candidate.id,
@@ -383,7 +543,7 @@ console.log(lengthOfLongestSubstring(input));
     },
   });
 
-  console.log(`✅ Seeded 3 problems and sample live interview session: ${sampleSession.id}`);
+  console.log(`✅ Seeded 5 problems and active interview session: ${sampleSession.id}`);
   console.log('✨ Seeding complete!');
 }
 
