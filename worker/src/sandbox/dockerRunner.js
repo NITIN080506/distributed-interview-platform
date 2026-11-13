@@ -3,14 +3,40 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-// Check if Docker daemon is accessible
-export function isDockerAvailable() {
+// Cache for local docker images so we don't query every time
+let availableImagesCache = null;
+let lastImageCheckTime = 0;
+
+// Check if Docker daemon is accessible and language image is downloaded locally
+export function isDockerAvailable(language) {
   try {
     execSync('docker info', { stdio: 'ignore', timeout: 1500 });
-    return true;
   } catch (_) {
     return false;
   }
+
+  if (!language) return true;
+
+  const config = LANGUAGE_CONFIGS[language];
+  if (!config) return false;
+
+  const now = Date.now();
+  if (!availableImagesCache || now - lastImageCheckTime > 30000) {
+    try {
+      const output = execSync('docker images --format "{{.Repository}}:{{.Tag}}"', {
+        encoding: 'utf-8',
+        timeout: 2500,
+      });
+      availableImagesCache = new Set(output.split(/\r?\n/).map((s) => s.trim()).filter(Boolean));
+      lastImageCheckTime = now;
+    } catch (_) {
+      availableImagesCache = new Set();
+    }
+  }
+
+  // Only run inside Docker if the specific image is already pulled locally.
+  // Otherwise, running without the image causes Docker to hang or pull with --network none.
+  return availableImagesCache.has(config.dockerImage);
 }
 
 const LANGUAGE_CONFIGS = {

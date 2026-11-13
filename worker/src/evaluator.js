@@ -4,14 +4,18 @@ export async function evaluateCodeSubmission({
   code,
   language,
   testCases = [],
-  timeLimitMs = 3000,
+  timeLimitMs = 5000,
   memoryLimitMb = 128,
   isCustomRun = false,
 }) {
-  const dockerOnline = isDockerAvailable();
+  // Generous timeout threshold (minimum 6,000ms) to account for language startup, JIT, and container init
+  const effectiveTimeout = Math.max(Number(timeLimitMs) || 3000, 6000);
+  const dockerOnline = isDockerAvailable(language);
   const runner = dockerOnline ? executeInDocker : executeLocalSandbox;
 
-  console.log(`🚀 Executing code with ${dockerOnline ? 'Docker Sandbox 🐳' : 'Local Sandbox ⚡'}`);
+  console.log(
+    `🚀 Executing ${language} code with ${dockerOnline ? 'Docker Sandbox 🐳' : 'Local Sandbox ⚡'} (Timeout: ${effectiveTimeout}ms)`
+  );
 
   const results = [];
   let passedCount = 0;
@@ -21,16 +25,33 @@ export async function evaluateCodeSubmission({
   let combinedStdout = '';
   let combinedStderr = '';
   let lastExitCode = 0;
+  let usedSandboxType = dockerOnline ? 'Docker Isolated (--network none)' : 'Local Host Sandbox';
 
   for (let i = 0; i < testCases.length; i++) {
     const tc = testCases[i];
-    const execResult = await runner({
+    let execResult = await runner({
       code,
       language,
       input: tc.input,
-      timeLimitMs,
+      timeLimitMs: effectiveTimeout,
       memoryLimitMb,
     });
+
+    // Auto-fallback: if Docker timed out due to container cold start or daemon latency,
+    // retry once with fast local sandbox so candidate is not unfairly penalized!
+    if (dockerOnline && execResult.isTimeout) {
+      console.warn(`⚠️ Test case ${i + 1} timed out in Docker. Retrying with high-performance local sandbox...`);
+      const fallbackResult = await executeLocalSandbox({
+        code,
+        language,
+        input: tc.input,
+        timeLimitMs: effectiveTimeout,
+      });
+      if (!fallbackResult.isTimeout) {
+        execResult = fallbackResult;
+        usedSandboxType = 'Local Host Sandbox (Auto-Fallback)';
+      }
+    }
 
     totalRuntimeMs += execResult.runtimeMs;
     maxMemoryKb = Math.max(maxMemoryKb, execResult.memoryKb);
@@ -105,7 +126,7 @@ export async function evaluateCodeSubmission({
       stdout: combinedStdout.trim(),
       stderr: combinedStderr.trim(),
       testCaseResults: results,
-      sandboxType: dockerOnline ? 'docker-isolated-container' : 'local-sandbox-fallback',
+      sandboxType: usedSandboxType,
     },
   };
 }

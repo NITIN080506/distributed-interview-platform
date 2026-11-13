@@ -136,7 +136,7 @@ router.post('/', authenticateToken, async (req, res) => {
       sessionId: sessionId || null, // Keep room identifier for WebSocket live broadcast
       code,
       language: language.toLowerCase(),
-      timeLimitMs: problem?.timeLimitMs || 3000,
+      timeLimitMs: Math.max(Number(problem?.timeLimitMs) || 5000, 6000),
       memoryLimitMb: problem?.memoryLimitMb || 128,
       isCustomRun: !!isCustomRun,
       testCases: testCasesToRun.map((tc) => ({
