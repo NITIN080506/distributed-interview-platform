@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../prisma.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { fetchLeetCodeProblem, CURATED_PACKS } from '../services/problemImporter.js';
 
 const router = express.Router();
 
@@ -90,11 +91,166 @@ router.get('/:idOrSlug', async (req, res) => {
   }
 });
 
-// Create problem (Interviewer / Admin only)
+// Import problem directly from LeetCode URL or Slug
+router.post('/import-leetcode', authenticateToken, async (req, res) => {
+  try {
+    const { urlOrSlug } = req.body;
+    if (!urlOrSlug) {
+      return res.status(400).json({ error: 'LeetCode URL or problem slug is required.' });
+    }
+
+    const problemData = await fetchLeetCodeProblem(urlOrSlug);
+
+    // Check if problem already exists
+    let slug = problemData.slug;
+    const existing = await prisma.problem.findUnique({ where: { slug } });
+    if (existing) {
+      slug = `${slug}-${Date.now().toString().slice(-4)}`;
+    }
+
+    const problem = await prisma.problem.create({
+      data: {
+        title: problemData.title,
+        slug,
+        description: problemData.description,
+        difficulty: problemData.difficulty,
+        tags: problemData.tags,
+        starterCodes: problemData.starterCodes,
+        timeLimitMs: problemData.timeLimitMs,
+        memoryLimitMb: problemData.memoryLimitMb,
+        testCases: {
+          create: problemData.testCases.map((tc, idx) => ({
+            input: tc.input,
+            expectedOutput: tc.expectedOutput,
+            isHidden: !!tc.isHidden,
+            order: idx + 1,
+          })),
+        },
+      },
+      include: {
+        testCases: true,
+      },
+    });
+
+    res.status(201).json({
+      message: `Successfully imported "${problem.title}" from LeetCode!`,
+      problem,
+    });
+  } catch (error) {
+    console.error('Import LeetCode problem error:', error);
+    res.status(500).json({ error: error.message || 'Failed to import problem from LeetCode.' });
+  }
+});
+
+// Import Curated Problem Pack (e.g. Blind 75 Essentials)
+router.post('/import-pack', authenticateToken, async (req, res) => {
+  try {
+    const { packId = 'blind75' } = req.body;
+    const pack = CURATED_PACKS[packId];
+
+    if (!pack || pack.length === 0) {
+      return res.status(404).json({ error: `Problem pack "${packId}" not found.` });
+    }
+
+    const createdProblems = [];
+    for (const p of pack) {
+      let slug = p.slug;
+      const existing = await prisma.problem.findUnique({ where: { slug } });
+      if (existing) {
+        // Skip already imported problem
+        continue;
+      }
+
+      const created = await prisma.problem.create({
+        data: {
+          title: p.title,
+          slug,
+          description: p.description,
+          difficulty: p.difficulty,
+          tags: p.tags,
+          starterCodes: p.starterCodes,
+          timeLimitMs: 2000,
+          memoryLimitMb: 128,
+          testCases: {
+            create: p.testCases.map((tc, idx) => ({
+              input: tc.input,
+              expectedOutput: tc.expectedOutput,
+              isHidden: !!tc.isHidden,
+              order: idx + 1,
+            })),
+          },
+        },
+      });
+      createdProblems.push(created);
+    }
+
+    res.status(201).json({
+      message: `Successfully imported ${createdProblems.length} curated problems from "${packId}" pack!`,
+      importedCount: createdProblems.length,
+      problems: createdProblems,
+    });
+  } catch (error) {
+    console.error('Import pack error:', error);
+    res.status(500).json({ error: error.message || 'Failed to import problem pack.' });
+  }
+});
+
+// Batch Import from Custom JSON
+router.post('/import-json', authenticateToken, async (req, res) => {
+  try {
+    const { problems } = req.body;
+    if (!Array.isArray(problems) || problems.length === 0) {
+      return res.status(400).json({ error: 'An array of problem definitions is required.' });
+    }
+
+    const createdProblems = [];
+    for (const p of problems) {
+      if (!p.title || !p.description) continue;
+
+      let slug = (p.slug || p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+      const existing = await prisma.problem.findUnique({ where: { slug } });
+      if (existing) {
+        slug = `${slug}-${Date.now().toString().slice(-4)}`;
+      }
+
+      const created = await prisma.problem.create({
+        data: {
+          title: p.title,
+          slug,
+          description: p.description,
+          difficulty: p.difficulty || 'MEDIUM',
+          tags: p.tags || [],
+          starterCodes: p.starterCodes || {},
+          timeLimitMs: Number(p.timeLimitMs) || 2000,
+          memoryLimitMb: Number(p.memoryLimitMb) || 128,
+          testCases: {
+            create: (p.testCases || []).map((tc, idx) => ({
+              input: tc.input,
+              expectedOutput: tc.expectedOutput,
+              isHidden: !!tc.isHidden,
+              order: idx + 1,
+            })),
+          },
+        },
+      });
+      createdProblems.push(created);
+    }
+
+    res.status(201).json({
+      message: `Successfully imported ${createdProblems.length} problems.`,
+      importedCount: createdProblems.length,
+      problems: createdProblems,
+    });
+  } catch (error) {
+    console.error('Batch import JSON error:', error);
+    res.status(500).json({ error: error.message || 'Failed to batch import problems.' });
+  }
+});
+
+// Create problem (Available to all authenticated developers)
 router.post(
   '/',
   authenticateToken,
-  requireRole(['INTERVIEWER', 'ADMIN']),
   async (req, res) => {
     try {
       const {
