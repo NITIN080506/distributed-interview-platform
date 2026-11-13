@@ -43,78 +43,79 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-4 bg-[#090a0d]">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="h-8 w-8 rounded-lg bg-[#141720] border border-white/10 flex items-center justify-center text-blue-400 mx-auto mb-3">
-            <Terminal className="h-4 w-4" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#090a0d] relative overflow-hidden">
+      {/* Subtle radial gradient background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(59,130,246,0.08)_0%,_transparent_70%)]" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-8">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-blue-500/20">
+            <Terminal className="h-5 w-5" />
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-white">Sign in to CodePulse</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Distributed Real-Time Code Execution Platform</p>
+          <h2 className="text-2xl font-bold tracking-tight text-white">Welcome back</h2>
+          <p className="text-base text-zinc-400 mt-1.5">Sign in to your CodePulse account</p>
         </div>
 
-        <div className="bg-[#0f1117] border border-white/[0.08] rounded-xl p-5 shadow-xl">
+        <div className="bg-[#111827] border border-white/10 rounded-2xl p-8 shadow-2xl">
           {error && (
-            <div className="mb-4 p-2.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <div className="mb-5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-zinc-400 mb-1 font-medium">Email address</label>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">Email address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
                 required
-                className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                className="w-full h-11 bg-[#0d1117] border border-white/10 rounded-lg px-3.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-zinc-400 font-medium">Password</label>
-              </div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-[#161822] border border-white/10 rounded-md px-3 py-2 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                className="w-full h-11 bg-[#0d1117] border border-white/10 rounded-lg px-3.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40"
             >
               {loading ? 'Authenticating...' : 'Continue'}
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
           {/* Quick Demo Access */}
-          <div className="mt-5 pt-4 border-t border-white/[0.06]">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 text-center mb-2.5">
-              1-Click Demo Profiles
+          <div className="mt-6 pt-5 border-t border-white/[0.08]">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 text-center mb-3">
+              Demo Accounts
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleQuickLogin('interviewer@example.com')}
-                className="py-1.5 px-2 rounded bg-white/[0.03] border border-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.06] text-[11px] font-medium transition-colors"
+                className="h-10 px-3 rounded-lg bg-white/[0.04] border border-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all"
               >
                 Interviewer
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickLogin('candidate@example.com')}
-                className="py-1.5 px-2 rounded bg-white/[0.03] border border-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.06] text-[11px] font-medium transition-colors"
+                className="h-10 px-3 rounded-lg bg-white/[0.04] border border-white/[0.08] text-zinc-300 hover:text-white hover:bg-white/[0.08] text-sm font-medium transition-all"
               >
                 Candidate
               </button>
@@ -122,9 +123,9 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-500 mt-4">
+        <p className="text-center text-sm text-zinc-500 mt-6">
           Don't have an account?{' '}
-          <Link to="/register" className="text-zinc-300 hover:text-white underline">
+          <Link to="/register" className="text-zinc-300 hover:text-white underline underline-offset-2">
             Sign up
           </Link>
         </p>
