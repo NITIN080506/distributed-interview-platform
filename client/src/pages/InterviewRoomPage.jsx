@@ -30,7 +30,9 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Volume2,
+  Shield,
+  Layers,
+  Copy,
 } from 'lucide-react';
 
 const STARTER_TEMPLATES = {
@@ -151,6 +153,10 @@ export default function InterviewRoomPage() {
 
   const isRemoteUpdate = useRef(false);
 
+  // Keep latest state in ref to avoid stale closure during keyboard shortcuts
+  const latestStateRef = useRef({});
+  latestStateRef.current = { code, language, problem, sessionId, useCustomInput, customInput };
+
   // Timer tick
   useEffect(() => {
     const timer = setInterval(() => {
@@ -263,7 +269,7 @@ export default function InterviewRoomPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, language, problem, sessionId, useCustomInput, customInput]);
+  }, []);
 
   const handleEditorChange = (value) => {
     if (isRemoteUpdate.current) {
@@ -286,18 +292,19 @@ export default function InterviewRoomPage() {
   };
 
   const handleRunOrSubmit = async (isSubmit = false) => {
+    const current = latestStateRef.current;
     setIsExecuting(true);
     setExecutionStatus('QUEUED');
     setTelemetry(null);
 
     try {
       const payload = {
-        problemId: problem?.id,
-        sessionId,
-        code,
-        language,
+        problemId: current.problem?.id,
+        sessionId: current.sessionId,
+        code: current.code,
+        language: current.language,
         isCustomRun: !isSubmit,
-        customInput: useCustomInput ? customInput : undefined,
+        customInput: current.useCustomInput ? current.customInput : undefined,
       };
 
       const { data } = await api.post('/submissions', payload);
@@ -340,26 +347,27 @@ export default function InterviewRoomPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-3rem)] flex flex-col bg-[#090a0d] text-zinc-200 overflow-hidden font-sans">
-      {/* 1. Sleek Top Bar (Breadcrumb + Timer + Actions) */}
-      <div className="h-11 border-b border-white/[0.06] bg-[#0d0f14] px-3.5 flex items-center justify-between shrink-0">
+    <div className="h-[calc(100vh-4rem)] flex flex-col bg-[#0a0e1a] text-zinc-100 overflow-hidden font-sans select-none">
+      {/* ── Top Toolbar (Professional IDE Workspace Bar) ── */}
+      <div className="h-14 border-b border-white/[0.08] bg-[#0c101c] px-4 flex items-center justify-between shrink-0 shadow-sm">
         {/* Left: Breadcrumbs & Meta */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-            <Link to="/sessions" className="hover:text-white transition-colors">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <Link to="/sessions" className="hover:text-white transition-colors font-medium">
               Interviews
             </Link>
-            <ChevronRight className="h-3 w-3 text-zinc-600" />
-            <span className="text-zinc-200 font-medium truncate max-w-[200px] sm:max-w-xs">
-              {session?.title || problem?.title || 'Sandbox'}
+            <ChevronRight className="h-4 w-4 text-zinc-600" />
+            <span className="text-white font-semibold truncate max-w-[200px] sm:max-w-xs">
+              {session?.title || problem?.title || 'Interactive Sandbox'}
             </span>
           </div>
 
-          <div className="h-3 w-[1px] bg-white/[0.08]" />
+          <div className="h-4 w-[1px] bg-white/[0.1]" />
 
           {/* Stopwatch Timer */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] font-mono text-[11px] text-zinc-400">
-            <Clock className="h-3 w-3 text-zinc-500" />
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/40 border border-white/[0.08] font-mono text-xs text-zinc-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Clock className="h-3.5 w-3.5 text-zinc-400" />
             <span>{formatTimer(secondsElapsed)}</span>
           </div>
 
@@ -367,7 +375,7 @@ export default function InterviewRoomPage() {
           <select
             value={language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="bg-[#141720] border border-white/10 rounded px-2 py-0.5 text-xs font-mono text-zinc-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="h-8 bg-[#131929] border border-white/10 rounded-lg px-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all"
           >
             <option value="python">Python 3.10</option>
             <option value="javascript">JavaScript (Node 20)</option>
@@ -378,16 +386,16 @@ export default function InterviewRoomPage() {
         </div>
 
         {/* Right: Tools & Execution Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* Whiteboard Toggle */}
           <button
             onClick={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
-            className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 border transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
               isWhiteboardOpen
-                ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                : 'bg-white/[0.03] text-zinc-400 border-white/[0.06] hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-blue-600/20 text-blue-400 border-blue-500/40'
+                : 'bg-white/[0.04] text-zinc-300 border-white/[0.08] hover:text-white hover:bg-white/[0.08]'
             }`}
-            title="Toggle Canvas Whiteboard"
+            title="Toggle Architecture Whiteboard"
           >
             <PenTool className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Whiteboard</span>
@@ -396,21 +404,21 @@ export default function InterviewRoomPage() {
           {/* Video Call PiP Toggle */}
           <button
             onClick={() => setIsVideoDockOpen(!isVideoDockOpen)}
-            className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 border transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-all ${
               isVideoDockOpen
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : 'bg-white/[0.03] text-zinc-400 border-white/[0.06] hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
+                : 'bg-white/[0.04] text-zinc-300 border-white/[0.08] hover:text-white hover:bg-white/[0.08]'
             }`}
-            title="Toggle Video Call"
+            title="Toggle WebRTC Video Call"
           >
             <Video className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Video</span>
+            <span className="hidden sm:inline">Video Call</span>
           </button>
 
           {/* AI Complexity Review */}
           <button
             onClick={() => setIsAIModalOpen(true)}
-            className="px-2.5 py-1 rounded text-xs font-medium text-zinc-300 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:text-white flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:text-white flex items-center gap-1.5 transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
             <span className="hidden md:inline">AI Review</span>
@@ -420,7 +428,7 @@ export default function InterviewRoomPage() {
           {isInterviewer && (
             <button
               onClick={() => setIsScorecardOpen(true)}
-              className="px-2.5 py-1 rounded text-xs font-medium text-purple-300 bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-300 bg-purple-500/15 border border-purple-500/30 hover:bg-purple-500/25 flex items-center gap-1.5 transition-colors shadow-sm"
             >
               <Award className="h-3.5 w-3.5" />
               <span>Scorecard</span>
@@ -430,24 +438,24 @@ export default function InterviewRoomPage() {
           {/* Audit Playback */}
           <button
             onClick={() => setIsAuditModalOpen(true)}
-            className="p-1.5 text-zinc-400 hover:text-white rounded hover:bg-white/[0.06] transition-colors"
-            title="Timeline Playback"
+            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-white/[0.08] transition-colors"
+            title="Keystroke Timeline Playback"
           >
-            <History className="h-3.5 w-3.5" />
+            <History className="h-4 w-4" />
           </button>
 
-          <div className="h-3.5 w-[1px] bg-white/[0.08]" />
+          <div className="h-4 w-[1px] bg-white/[0.1]" />
 
           {/* Run Code Button */}
           <button
             onClick={() => handleRunOrSubmit(false)}
             disabled={isExecuting}
-            className="px-3 py-1 rounded text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200 border border-white/[0.08] flex items-center gap-1.5 transition-all disabled:opacity-50"
-            title="Ctrl + Enter"
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200 border border-white/[0.1] flex items-center gap-2 transition-all disabled:opacity-50"
+            title="Ctrl + Enter / Cmd + Enter"
           >
-            <Play className="h-3 w-3 fill-current text-zinc-400" />
+            <Play className="h-3.5 w-3.5 fill-current text-blue-400" />
             <span>Run</span>
-            <kbd className="hidden sm:inline font-mono text-[9px] text-zinc-500 bg-black/40 px-1 rounded ml-0.5">
+            <kbd className="hidden sm:inline font-mono text-[10px] text-zinc-400 bg-black/40 px-1.5 py-0.5 rounded">
               ⌘↵
             </kbd>
           </button>
@@ -456,16 +464,16 @@ export default function InterviewRoomPage() {
           <button
             onClick={() => handleRunOrSubmit(true)}
             disabled={isExecuting}
-            className="px-3.5 py-1 rounded text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+            className="btn-primary py-1.5 px-4 text-xs font-semibold disabled:opacity-50"
           >
             {isExecuting ? (
               <>
-                <div className="w-3 h-3 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+                <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin mr-1.5" />
                 <span>Running...</span>
               </>
             ) : (
               <>
-                <Check className="h-3 w-3" />
+                <Check className="h-3.5 w-3.5 mr-1" />
                 <span>Submit</span>
               </>
             )}
@@ -473,46 +481,46 @@ export default function InterviewRoomPage() {
         </div>
       </div>
 
-      {/* 2. Main Workbench Layout */}
+      {/* ── Main Workspace Body ── */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Side: Tasks & Testcases & Chat */}
-        <div className="w-full md:w-[440px] lg:w-[480px] border-r border-white/[0.06] flex flex-col shrink-0 bg-[#0c0d12]">
+        <div className="w-full md:w-[460px] lg:w-[500px] border-r border-white/[0.08] flex flex-col shrink-0 bg-[#0c101c] select-text">
           {/* Tab Navigation */}
-          <div className="h-9 flex items-center border-b border-white/[0.06] bg-[#0a0b0e] text-xs px-2 gap-1 shrink-0">
+          <div className="h-10 flex items-center border-b border-white/[0.08] bg-[#090d18] px-3 gap-2 shrink-0">
             <button
               onClick={() => setActiveLeftTab('problem')}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
                 activeLeftTab === 'problem'
-                  ? 'text-white bg-white/[0.06]'
+                  ? 'text-white bg-white/[0.08] text-blue-400'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <FileCode className="h-3.5 w-3.5" />
+              <FileCode className="h-4 w-4" />
               Description
             </button>
             <button
               onClick={() => setActiveLeftTab('testcases')}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
                 activeLeftTab === 'testcases'
-                  ? 'text-white bg-white/[0.06]'
+                  ? 'text-white bg-white/[0.08] text-blue-400'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Terminal className="h-3.5 w-3.5" />
+              <Terminal className="h-4 w-4" />
               Test Cases
             </button>
             <button
               onClick={() => setActiveLeftTab('chat')}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
                 activeLeftTab === 'chat'
-                  ? 'text-white bg-white/[0.06]'
+                  ? 'text-white bg-white/[0.08] text-blue-400'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <MessageSquare className="h-3.5 w-3.5" />
+              <MessageSquare className="h-4 w-4" />
               Room Chat
               {chatMessages.length > 0 && (
-                <span className="text-[10px] font-mono px-1 rounded bg-blue-500/20 text-blue-400">
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-300 font-bold">
                   {chatMessages.length}
                 </span>
               )}
@@ -520,60 +528,62 @@ export default function InterviewRoomPage() {
           </div>
 
           {/* Left Panel Content */}
-          <div className="flex-1 overflow-y-auto p-4 text-xs leading-relaxed">
+          <div className="flex-1 overflow-y-auto p-5 text-sm leading-relaxed">
             {activeLeftTab === 'problem' && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {problem ? (
                   <>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-base font-semibold text-white tracking-tight">
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-xl font-bold text-white tracking-tight">
                         {problem.title}
                       </h2>
                       <span
-                        className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-medium ${
+                        className={`text-xs font-mono uppercase px-2.5 py-1 rounded-full border font-semibold ${
                           problem.difficulty === 'EASY'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                             : problem.difficulty === 'MEDIUM'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                         }`}
                       >
                         {problem.difficulty}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-500 pb-2 border-b border-white/[0.06]">
-                      <span>Time: {problem.timeLimitMs || 2000}ms</span>
+                    <div className="flex items-center gap-3 text-xs font-mono text-zinc-400 pb-3 border-b border-white/[0.08]">
+                      <span>Time: <strong className="text-zinc-200">{problem.timeLimitMs || 2000}ms</strong></span>
                       <span>•</span>
-                      <span>Memory: {problem.memoryLimitMb || 128}MB</span>
+                      <span>Memory: <strong className="text-zinc-200">{problem.memoryLimitMb || 128}MB</strong></span>
+                      <span>•</span>
+                      <span>Isolation: <strong className="text-emerald-400">Docker</strong></span>
                     </div>
 
-                    <div className="text-zinc-300 font-normal leading-relaxed whitespace-pre-wrap">
+                    <div className="text-zinc-300 font-normal leading-relaxed whitespace-pre-wrap text-sm">
                       {problem.description}
                     </div>
                   </>
                 ) : (
-                  <div className="text-zinc-500 py-8 text-center">
-                    Select a problem from the Problem Bank.
+                  <div className="text-zinc-500 py-12 text-center">
+                    Select a challenge from the Problem Bank to begin.
                   </div>
                 )}
               </div>
             )}
 
             {activeLeftTab === 'testcases' && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-medium">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     Test Case Inputs
                   </span>
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-400 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={useCustomInput}
                       onChange={(e) => setUseCustomInput(e.target.checked)}
-                      className="rounded border-zinc-700 bg-zinc-900 text-blue-500"
+                      className="rounded border-zinc-700 bg-zinc-900 text-blue-500 h-4 w-4"
                     />
-                    Custom Test Case
+                    Custom Standard Input
                   </label>
                 </div>
 
@@ -583,20 +593,20 @@ export default function InterviewRoomPage() {
                       value={customInput}
                       onChange={(e) => setCustomInput(e.target.value)}
                       placeholder="Enter custom stdin input here..."
-                      rows={6}
-                      className="w-full bg-[#12141c] border border-white/[0.08] rounded-md p-3 font-mono text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                      rows={8}
+                      className="w-full bg-[#111625] border border-white/10 rounded-xl p-4 font-mono text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex gap-1.5">
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
                       {problem?.testCases?.map((tc, idx) => (
                         <button
                           key={tc.id || idx}
                           onClick={() => setSelectedTestCaseIndex(idx)}
-                          className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all ${
                             selectedTestCaseIndex === idx
-                              ? 'bg-blue-600 text-white font-medium'
+                              ? 'bg-blue-600 text-white shadow-md'
                               : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                           }`}
                         >
@@ -608,15 +618,19 @@ export default function InterviewRoomPage() {
                     {problem?.testCases?.[selectedTestCaseIndex] && (
                       <div className="space-y-3 font-mono text-xs">
                         <div>
-                          <label className="text-zinc-500 block mb-1 text-[11px]">Standard Input (stdin):</label>
-                          <div className="bg-[#12141c] p-2.5 rounded border border-white/[0.06] text-zinc-200 whitespace-pre">
+                          <label className="text-zinc-400 block mb-1.5 text-xs font-semibold uppercase">
+                            Standard Input (stdin):
+                          </label>
+                          <div className="bg-[#111625] p-3 rounded-xl border border-white/[0.08] text-zinc-200 whitespace-pre">
                             {problem.testCases[selectedTestCaseIndex].input}
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-zinc-500 block mb-1 text-[11px]">Expected Output (stdout):</label>
-                          <div className="bg-[#12141c] p-2.5 rounded border border-white/[0.06] text-emerald-400 whitespace-pre">
+                          <label className="text-zinc-400 block mb-1.5 text-xs font-semibold uppercase">
+                            Expected Output (stdout):
+                          </label>
+                          <div className="bg-[#111625] p-3 rounded-xl border border-white/[0.08] text-emerald-400 whitespace-pre">
                             {problem.testCases[selectedTestCaseIndex].expectedOutput}
                           </div>
                         </div>
@@ -629,23 +643,23 @@ export default function InterviewRoomPage() {
 
             {activeLeftTab === 'chat' && (
               <div className="flex flex-col h-full justify-between">
-                <div className="space-y-2.5 overflow-y-auto max-h-[calc(100vh-14rem)] pr-1">
+                <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-16rem)] pr-1">
                   {chatMessages.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-600 text-xs">
-                      No messages yet. Send a note or message to the room.
+                    <div className="text-center py-12 text-zinc-500 text-xs">
+                      No messages yet. Send a note or message to the interview room.
                     </div>
                   ) : (
                     chatMessages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`p-2 rounded-md text-xs max-w-[88%] ${
+                        className={`p-3 rounded-xl text-xs max-w-[88%] ${
                           msg.user?.id === user?.id
-                            ? 'ml-auto bg-blue-600/15 border border-blue-500/25 text-blue-200'
-                            : 'bg-white/[0.03] border border-white/[0.06] text-zinc-300'
+                            ? 'ml-auto bg-blue-600/20 border border-blue-500/30 text-blue-100'
+                            : 'bg-white/[0.04] border border-white/[0.08] text-zinc-200'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 mb-1 text-[10px] text-zinc-500 font-mono">
-                          <span>{msg.user?.name || 'Peer'}</span>
+                        <div className="flex items-center justify-between gap-3 mb-1 text-[11px] text-zinc-400 font-mono">
+                          <span className="font-semibold">{msg.user?.name || 'Peer'}</span>
                           <span>
                             {new Date(msg.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
@@ -653,25 +667,25 @@ export default function InterviewRoomPage() {
                             })}
                           </span>
                         </div>
-                        <p>{msg.text}</p>
+                        <p className="leading-relaxed">{msg.text}</p>
                       </div>
                     ))
                   )}
                 </div>
 
-                <form onSubmit={handleSendChat} className="mt-3 pt-3 border-t border-white/[0.06] flex gap-2">
+                <form onSubmit={handleSendChat} className="mt-4 pt-3 border-t border-white/[0.08] flex gap-2">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Type message to room..."
-                    className="flex-1 bg-[#12141c] border border-white/[0.08] rounded px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500"
+                    className="flex-1 bg-[#111625] border border-white/10 rounded-lg px-3.5 py-2 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     type="submit"
-                    className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
+                    className="px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors flex items-center justify-center"
                   >
-                    <Send className="h-3.5 w-3.5" />
+                    <Send className="h-4 w-4" />
                   </button>
                 </form>
               </div>
@@ -682,21 +696,23 @@ export default function InterviewRoomPage() {
         {/* Center / Right: Monaco Code Editor & Bottom Terminal */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Editor Header Tab Bar */}
-          <div className="h-8 border-b border-white/[0.06] bg-[#0b0c10] px-3 flex items-center justify-between text-xs text-zinc-400 font-mono shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-200">
+          <div className="h-10 border-b border-white/[0.08] bg-[#0a0e1a] px-4 flex items-center justify-between text-xs text-zinc-400 font-mono shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="text-zinc-100 font-semibold flex items-center gap-2">
+                <FileCode className="h-4 w-4 text-blue-400" />
                 solution.{language === 'python' ? 'py' : language === 'javascript' ? 'js' : language === 'cpp' ? 'cpp' : language === 'java' ? 'java' : 'go'}
               </span>
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+              <span className="h-2 w-2 rounded-full bg-emerald-400" title="Synchronized" />
             </div>
 
-            <div className="text-[11px] text-zinc-500">
-              {Math.max(activeUsers.length, 1)} collaborator{activeUsers.length > 1 ? 's' : ''} in room
+            <div className="text-xs text-zinc-400 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-blue-400" />
+              <span>{Math.max(activeUsers.length, 1)} collaborator{activeUsers.length > 1 ? 's' : ''} live</span>
             </div>
           </div>
 
           {/* Monaco Editor */}
-          <div className="flex-1 min-h-[300px] bg-[#090a0d]">
+          <div className="flex-1 min-h-[300px] bg-[#080b14] select-text">
             <Editor
               height="100%"
               language={
@@ -713,12 +729,12 @@ export default function InterviewRoomPage() {
               onChange={handleEditorChange}
               options={{
                 fontFamily: 'JetBrains Mono, monospace',
-                fontSize: 13,
+                fontSize: 14,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
                 automaticLayout: true,
-                padding: { top: 10, bottom: 10 },
+                padding: { top: 12, bottom: 12 },
                 tabSize: 4,
                 cursorBlinking: 'smooth',
                 lineDecorationsWidth: 6,
@@ -727,14 +743,14 @@ export default function InterviewRoomPage() {
             />
           </div>
 
-          {/* Bottom Execution Telemetry Drawer (Developer Terminal Look) */}
-          <div className="h-60 border-t border-white/[0.08] bg-[#0b0d13] flex flex-col shrink-0">
+          {/* Bottom Execution Telemetry Drawer */}
+          <div className="h-64 border-t border-white/[0.08] bg-[#0c101c] flex flex-col shrink-0 select-text">
             {/* Terminal Tab Bar */}
-            <div className="h-8 px-3 border-b border-white/[0.06] flex items-center justify-between bg-[#08090d]">
-              <div className="flex items-center gap-1 font-mono text-xs">
+            <div className="h-10 px-4 border-b border-white/[0.08] flex items-center justify-between bg-[#090d18]">
+              <div className="flex items-center gap-2 font-mono text-xs">
                 <button
                   onClick={() => setActiveConsoleTab('results')}
-                  className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg transition-all font-semibold ${
                     activeConsoleTab === 'results'
                       ? 'text-white bg-white/[0.08]'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -744,7 +760,7 @@ export default function InterviewRoomPage() {
                 </button>
                 <button
                   onClick={() => setActiveConsoleTab('stdout')}
-                  className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg transition-all font-semibold ${
                     activeConsoleTab === 'stdout'
                       ? 'text-white bg-white/[0.08]'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -754,7 +770,7 @@ export default function InterviewRoomPage() {
                 </button>
                 <button
                   onClick={() => setActiveConsoleTab('telemetry')}
-                  className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg transition-all font-semibold ${
                     activeConsoleTab === 'telemetry'
                       ? 'text-white bg-white/[0.08]'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -767,77 +783,77 @@ export default function InterviewRoomPage() {
               {/* Status Badge */}
               <div className="flex items-center gap-2">
                 {executionStatus === 'QUEUED' && (
-                  <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
-                    <Clock className="h-3 w-3 animate-spin" /> Enqueued in Redis
+                  <span className="text-xs font-mono text-amber-400 flex items-center gap-1.5 font-semibold">
+                    <Clock className="h-3.5 w-3.5 animate-spin" /> Enqueued in Redis
                   </span>
                 )}
                 {executionStatus === 'PROCESSING' && (
-                  <span className="text-[10px] font-mono text-cyan-400 flex items-center gap-1">
-                    <Cpu className="h-3 w-3 animate-pulse" /> Sandbox Container Running...
+                  <span className="text-xs font-mono text-cyan-400 flex items-center gap-1.5 font-semibold">
+                    <Cpu className="h-3.5 w-3.5 animate-pulse" /> Sandbox Container Running...
                   </span>
                 )}
                 {executionStatus === 'ACCEPTED' && (
-                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> All Test Cases Passed
+                  <span className="text-xs font-mono text-emerald-400 flex items-center gap-1.5 font-semibold">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> All Test Cases Passed
                   </span>
                 )}
                 {executionStatus === 'WRONG_ANSWER' && (
-                  <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1">
-                    <XCircle className="h-3 w-3" /> Wrong Answer
+                  <span className="text-xs font-mono text-rose-400 flex items-center gap-1.5 font-semibold">
+                    <XCircle className="h-3.5 w-3.5" /> Wrong Answer
                   </span>
                 )}
                 {executionStatus === 'TIME_LIMIT_EXCEEDED' && (
-                  <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Time Limit Exceeded
+                  <span className="text-xs font-mono text-amber-400 flex items-center gap-1.5 font-semibold">
+                    <Clock className="h-3.5 w-3.5" /> Time Limit Exceeded
                   </span>
                 )}
                 {executionStatus === 'RUNTIME_ERROR' && (
-                  <span className="text-[10px] font-mono text-rose-400 flex items-center gap-1">
-                    <XCircle className="h-3 w-3" /> Runtime Error
+                  <span className="text-xs font-mono text-rose-400 flex items-center gap-1.5 font-semibold">
+                    <XCircle className="h-3.5 w-3.5" /> Runtime Error
                   </span>
                 )}
               </div>
             </div>
 
             {/* Terminal Body */}
-            <div className="flex-1 overflow-y-auto p-3 text-xs font-mono bg-[#090b10]">
+            <div className="flex-1 overflow-y-auto p-4 text-xs font-mono bg-[#080b14]">
               {!telemetry && !isExecuting && (
-                <div className="h-full flex items-center justify-center text-zinc-600 text-xs">
-                  Press Run (⌘↵) or Submit to execute code in sandboxed Docker container.
+                <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
+                  Press Run (⌘↵) or Submit to evaluate code in isolated Docker sandbox.
                 </div>
               )}
 
               {isExecuting && (
-                <div className="h-full flex flex-col items-center justify-center gap-2 text-zinc-400">
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-zinc-300">
+                  <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   <span className="text-xs">Dispatching job to Redis worker queue...</span>
                 </div>
               )}
 
               {telemetry && activeConsoleTab === 'results' && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {telemetry.testCaseResults?.map((tc, idx) => (
                     <div
                       key={idx}
-                      className="p-2.5 rounded bg-white/[0.02] border border-white/[0.06] flex items-start justify-between"
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-start justify-between"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5">
                           <span
-                            className={`h-2 w-2 rounded-full ${
+                            className={`h-2.5 w-2.5 rounded-full ${
                               tc.passed ? 'bg-emerald-400' : 'bg-rose-500'
                             }`}
                           />
-                          <span className="font-semibold text-zinc-200">Test Case {idx + 1}</span>
+                          <span className="font-bold text-white text-sm">Test Case {idx + 1}</span>
                           <span className="text-zinc-500">• {tc.executionTimeMs}ms</span>
                         </div>
-                        <div className="text-[11px] text-zinc-400">
-                          Output: <span className="text-zinc-200">{tc.actualOutput || '(Empty)'}</span> | Expected: <span className="text-emerald-400">{tc.expectedOutput}</span>
+                        <div className="text-xs text-zinc-400">
+                          Output: <span className="text-zinc-100 font-semibold">{tc.actualOutput || '(Empty)'}</span> | Expected: <span className="text-emerald-400 font-semibold">{tc.expectedOutput}</span>
                         </div>
                       </div>
                       <span
-                        className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          tc.passed ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'
+                        className={`text-xs uppercase font-bold px-2 py-0.5 rounded-md ${
+                          tc.passed ? 'text-emerald-400 bg-emerald-500/15' : 'text-rose-400 bg-rose-500/15'
                         }`}
                       >
                         {tc.passed ? 'Passed' : 'Failed'}
@@ -845,7 +861,7 @@ export default function InterviewRoomPage() {
                     </div>
                   ))}
                   {telemetry.stderr && (
-                    <div className="p-2 rounded bg-rose-950/30 border border-rose-500/20 text-rose-300 text-xs whitespace-pre-wrap">
+                    <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/20 text-rose-300 text-xs whitespace-pre-wrap leading-relaxed">
                       {telemetry.stderr}
                     </div>
                   )}
@@ -853,28 +869,28 @@ export default function InterviewRoomPage() {
               )}
 
               {telemetry && activeConsoleTab === 'stdout' && (
-                <div className="text-zinc-300 whitespace-pre">
+                <div className="text-zinc-200 whitespace-pre leading-relaxed">
                   {telemetry.stdout || '(Standard output stream is empty)'}
                 </div>
               )}
 
               {telemetry && activeConsoleTab === 'telemetry' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-white/[0.02] p-2.5 rounded border border-white/[0.06]">
-                    <span className="text-zinc-500 text-[10px] block">WALL-CLOCK RUNTIME</span>
-                    <span className="text-sm font-bold text-cyan-400">{telemetry.runtimeMs} ms</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/[0.08]">
+                    <span className="text-zinc-500 text-xs block font-semibold mb-1">WALL-CLOCK RUNTIME</span>
+                    <span className="text-base font-bold text-cyan-400">{telemetry.runtimeMs} ms</span>
                   </div>
-                  <div className="bg-white/[0.02] p-2.5 rounded border border-white/[0.06]">
-                    <span className="text-zinc-500 text-[10px] block">PEAK MEMORY RSS</span>
-                    <span className="text-sm font-bold text-purple-400">{telemetry.memoryKb} KB</span>
+                  <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/[0.08]">
+                    <span className="text-zinc-500 text-xs block font-semibold mb-1">PEAK MEMORY RSS</span>
+                    <span className="text-base font-bold text-purple-400">{telemetry.memoryKb} KB</span>
                   </div>
-                  <div className="bg-white/[0.02] p-2.5 rounded border border-white/[0.06]">
-                    <span className="text-zinc-500 text-[10px] block">CONTAINER ISOLATION</span>
-                    <span className="text-xs font-semibold text-zinc-300">{telemetry.sandboxType}</span>
+                  <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/[0.08]">
+                    <span className="text-zinc-500 text-xs block font-semibold mb-1">CONTAINER ISOLATION</span>
+                    <span className="text-xs font-semibold text-emerald-400">{telemetry.sandboxType}</span>
                   </div>
-                  <div className="bg-white/[0.02] p-2.5 rounded border border-white/[0.06]">
-                    <span className="text-zinc-500 text-[10px] block">EXIT STATUS</span>
-                    <span className="text-xs font-semibold text-emerald-400">Code {telemetry.exitCode}</span>
+                  <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/[0.08]">
+                    <span className="text-zinc-500 text-xs block font-semibold mb-1">EXIT STATUS</span>
+                    <span className="text-xs font-semibold text-zinc-100">Code {telemetry.exitCode}</span>
                   </div>
                 </div>
               )}
@@ -883,17 +899,17 @@ export default function InterviewRoomPage() {
 
           {/* Floating Picture-in-Picture Video Call Tile */}
           {isVideoDockOpen && (
-            <div className="absolute top-10 right-4 z-40 w-80 h-60 rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-black/90 backdrop-blur-md flex flex-col">
-              <div className="h-7 px-3 bg-zinc-900 border-b border-white/10 flex items-center justify-between text-[11px] text-zinc-300">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Live Interview Call
+            <div className="absolute top-12 right-6 z-40 w-88 h-68 rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/95 backdrop-blur-xl flex flex-col">
+              <div className="h-9 px-4 bg-zinc-900/90 border-b border-white/10 flex items-center justify-between text-xs text-zinc-200">
+                <span className="flex items-center gap-2 font-semibold">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Live WebRTC Video Call
                 </span>
                 <button
                   onClick={() => setIsVideoDockOpen(false)}
-                  className="p-1 hover:text-white"
+                  className="p-1 hover:text-white rounded"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex-1">
@@ -904,15 +920,15 @@ export default function InterviewRoomPage() {
 
           {/* Floating Whiteboard Overlay */}
           {isWhiteboardOpen && (
-            <div className="absolute inset-4 z-40 rounded-xl overflow-hidden shadow-2xl border border-white/15 bg-black/95 backdrop-blur-md flex flex-col">
-              <div className="h-8 px-4 bg-zinc-900 border-b border-white/10 flex items-center justify-between text-xs text-zinc-300">
-                <span className="font-semibold flex items-center gap-1.5">
-                  <PenTool className="h-3.5 w-3.5 text-blue-400" />
+            <div className="absolute inset-4 z-40 rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-black/95 backdrop-blur-xl flex flex-col">
+              <div className="h-10 px-5 bg-zinc-900 border-b border-white/10 flex items-center justify-between text-sm text-zinc-200">
+                <span className="font-bold flex items-center gap-2">
+                  <PenTool className="h-4 w-4 text-blue-400" />
                   Collaborative System Architecture Whiteboard
                 </span>
                 <button
                   onClick={() => setIsWhiteboardOpen(false)}
-                  className="p-1 text-zinc-400 hover:text-white"
+                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </button>
