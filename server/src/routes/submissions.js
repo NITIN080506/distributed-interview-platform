@@ -8,7 +8,7 @@ const router = express.Router();
 // Submit code for execution (Asynchronous worker queue via Redis)
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { problemId, code, language, sessionId, customInput, isCustomRun } = req.body;
+    let { problemId, code, language, sessionId, customInput, isCustomRun } = req.body;
 
     if (!code || !language) {
       return res.status(400).json({ error: 'Code and language are required.' });
@@ -19,6 +19,23 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({
         error: `Unsupported language. Supported: ${validLanguages.join(', ')}`,
       });
+    }
+
+    // Resolve problemId if missing (from session or default problem)
+    if (!problemId && sessionId) {
+      const sessionRecord = await prisma.interviewSession.findUnique({
+        where: { id: sessionId },
+        select: { problemId: true },
+      });
+      if (sessionRecord?.problemId) {
+        problemId = sessionRecord.problemId;
+      }
+    }
+    if (!problemId) {
+      const defaultProblem = await prisma.problem.findFirst();
+      if (defaultProblem) {
+        problemId = defaultProblem.id;
+      }
     }
 
     let problem = null;
@@ -69,7 +86,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const submission = await prisma.submission.create({
       data: {
         userId: req.user.id,
-        problemId: problem ? problem.id : null,
+        problemId: problem ? problem.id : problemId,
         sessionId: sessionId || null,
         code,
         language: language.toLowerCase(),
@@ -113,6 +130,35 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Submission queue error:', error);
     return res.status(500).json({ error: 'Failed to enqueue code submission.' });
+  }
+});
+
+// List user submissions with filtering and pagination
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { status, problemId, limit = 50 } = req.query;
+    const where = { userId: req.user.id };
+    if (status && status !== 'ALL') where.status = status;
+    if (problemId) where.problemId = problemId;
+
+    const submissions = await prisma.submission.findMany({
+      where,
+      take: parseInt(limit, 10),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        problem: {
+          select: { id: true, title: true, difficulty: true },
+        },
+        telemetry: {
+          select: { runtimeMs: true, memoryKb: true, sandboxType: true },
+        },
+      },
+    });
+
+    res.json({ submissions });
+  } catch (error) {
+    console.error('Fetch submissions error:', error);
+    res.status(500).json({ error: 'Failed to retrieve submissions.' });
   }
 });
 
