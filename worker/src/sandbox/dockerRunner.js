@@ -2,6 +2,7 @@ import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { prepareExecutableCode } from './harness.js';
 
 // Cache for local docker images so we don't query every time
 let availableImagesCache = null;
@@ -112,7 +113,8 @@ export async function executeInDocker({
   const baseName = language === 'java' ? 'Solution' : 'solution';
   const srcFileName = `${baseName}.${config.extension}`;
   const srcFilePath = path.join(tempDir, srcFileName);
-  fs.writeFileSync(srcFilePath, code, 'utf-8');
+  const executableCode = prepareExecutableCode(code, language);
+  fs.writeFileSync(srcFilePath, executableCode, 'utf-8');
 
   const normalizedDir = tempDir.replace(/\\/g, '/');
 
@@ -156,7 +158,8 @@ export async function executeLocalSandbox({
   const baseName = language === 'java' ? 'Solution' : 'solution';
   const srcFileName = `${baseName}.${config.extension}`;
   const srcFilePath = path.join(tempDir, srcFileName);
-  fs.writeFileSync(srcFilePath, code, 'utf-8');
+  const executableCode = prepareExecutableCode(code, language);
+  fs.writeFileSync(srcFilePath, executableCode, 'utf-8');
 
   try {
     const { cmd, args } = config.getLocalCmd(srcFilePath);
