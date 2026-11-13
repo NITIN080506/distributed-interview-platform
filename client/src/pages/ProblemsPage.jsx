@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Search, ChevronRight, Play, Terminal, ArrowUpRight } from 'lucide-react';
+import { Search, ChevronRight, Play, Terminal, ArrowUpRight, DownloadCloud, Sparkles } from 'lucide-react';
+import ImportProblemModal from '../components/ImportProblemModal';
 
 export default function ProblemsPage() {
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const { isInterviewer } = useAuth();
   const navigate = useNavigate();
 
@@ -74,8 +76,8 @@ export default function ProblemsPage() {
         </p>
       </div>
 
-      {/* Stats Bar */}
-      <div className="flex items-center gap-4 mb-6">
+      {/* Stats Bar & Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 text-sm text-zinc-400">
           <Terminal className="h-4 w-4 text-blue-400" />
           <span>
@@ -83,12 +85,23 @@ export default function ProblemsPage() {
             {filteredProblems.length === 1 ? 'problem' : 'problems'}
           </span>
         </div>
-        <Link
-          to="/sessions"
-          className="ml-auto px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] rounded-lg border border-white/[0.08] transition-all duration-200"
-        >
-          View Active Interviews
-        </Link>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-lg transition-all shadow-md shadow-blue-600/25 flex items-center gap-2"
+          >
+            <DownloadCloud className="h-4 w-4" />
+            Import Problems (LeetCode)
+          </button>
+
+          <Link
+            to="/sessions"
+            className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] rounded-lg border border-white/[0.08] transition-all duration-200"
+          >
+            View Active Interviews
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -204,6 +217,15 @@ export default function ProblemsPage() {
           ))
         )}
       </div>
+
+      {/* Import Problems Modal */}
+      <ImportProblemModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onProblemImported={() => {
+          fetchProblems();
+        }}
+      />
     </div>
   );
 }
