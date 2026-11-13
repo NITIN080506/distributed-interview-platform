@@ -18,99 +18,112 @@ export default function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <header className="h-12 border-b border-white/[0.06] bg-[#090a0d]/95 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+    <header className="h-16 border-b border-white/[0.08] bg-[#0a0e1a]/80 backdrop-blur-xl sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
         {/* Left: Brand & Navigation */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="h-6 w-6 rounded-md bg-[#161a23] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500/40 transition-colors">
-              <Terminal className="h-3.5 w-3.5" />
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all">
+              <Terminal className="h-4.5 w-4.5" />
             </div>
-            <span className="text-sm font-semibold tracking-tight text-white flex items-center gap-1.5">
+            <span className="text-lg font-bold tracking-tight text-white">
               CodePulse
-              <span className="text-[10px] font-mono text-zinc-500 font-normal">v1.2</span>
             </span>
           </Link>
 
-          <div className="h-3.5 w-[1px] bg-white/[0.08]" />
-
           <nav className="flex items-center gap-1">
+            {isAuthenticated && (
+              <Link
+                to="/dashboard"
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  isActive('/dashboard')
+                    ? 'text-white bg-white/[0.08] text-blue-400 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05]'
+                }`}
+              >
+                Dashboard
+              </Link>
+            )}
             <Link
               to="/problems"
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 isActive('/problems')
-                  ? 'text-white bg-white/[0.06]'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
+                  ? 'text-white bg-white/[0.08] text-blue-400 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05]'
               }`}
             >
               Problem Bank
             </Link>
             <Link
               to="/sessions"
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
                 isActive('/sessions')
-                  ? 'text-white bg-white/[0.06]'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
+                  ? 'text-white bg-white/[0.08] text-blue-400 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05]'
               }`}
             >
               Interviews
             </Link>
+            {isAuthenticated && (
+              <Link
+                to="/submissions"
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  isActive('/submissions')
+                    ? 'text-white bg-white/[0.08] text-blue-400 font-semibold'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05]'
+                }`}
+              >
+                Telemetry
+              </Link>
+            )}
           </nav>
         </div>
 
-        {/* Right: Telemetry Ping & User Menu */}
-        <div className="flex items-center gap-3">
-          {/* Real-time Socket Health Pill */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-white/[0.03] border border-white/[0.06] text-zinc-400">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
-              }`}
-            />
-            <span className="text-[10px] uppercase tracking-wide">
-              {isConnected ? 'cluster live' : 'reconnecting'}
-            </span>
-          </div>
-
+        {/* Right: User Menu */}
+        <div className="flex items-center gap-4">
           {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06]">
-                <div className="h-5 w-5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-[11px] font-bold">
-                  {user.name.charAt(0).toUpperCase()}
+            <div className="flex items-center gap-4">
+              <Link
+                to="/profile"
+                className="flex items-center gap-3 p-1 rounded-lg hover:bg-white/[0.04] transition-colors group"
+                title="View Profile & Settings"
+              >
+                <div className="relative">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold shadow-md group-hover:scale-105 transition-transform">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  {isConnected && (
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[#0a0e1a]" />
+                  )}
                 </div>
-                <span className="text-xs text-zinc-200 font-medium max-w-[120px] truncate">
-                  {user.name}
-                </span>
-                <span
-                  className={`text-[9px] font-mono font-medium uppercase px-1 py-0.2 rounded border ${
-                    isInterviewer
-                      ? 'bg-purple-500/10 text-purple-300 border-purple-500/20'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700/50'
-                  }`}
-                >
-                  {user.role}
-                </span>
-              </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-sm text-zinc-100 font-medium max-w-[130px] truncate leading-tight group-hover:text-blue-300 transition-colors">
+                    {user.name}
+                  </span>
+                  <span className="text-xs text-zinc-500 leading-tight capitalize">
+                    {user.role?.toLowerCase()}
+                  </span>
+                </div>
+              </Link>
 
               <button
                 onClick={handleLogout}
-                className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors"
-                title="Sign out"
+                className="text-sm text-zinc-400 hover:text-rose-400 px-3 py-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
               >
-                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Link
                 to="/login"
-                className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 transition-colors"
+                className="text-sm text-zinc-400 hover:text-white px-3 py-2 transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
-                className="text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-md transition-colors shadow-sm"
+                className="text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-5 py-2 rounded-lg transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40"
               >
                 Sign Up
               </Link>
