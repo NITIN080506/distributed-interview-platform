@@ -21,16 +21,27 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
-    // Resolve problemId if missing (from session or default problem)
-    if (!problemId && sessionId) {
-      const sessionRecord = await prisma.interviewSession.findUnique({
-        where: { id: sessionId },
-        select: { problemId: true },
-      });
-      if (sessionRecord?.problemId) {
-        problemId = sessionRecord.problemId;
+    // Resolve sessionId: only set validSessionId if it exists in the database.
+    // Virtual sessions (like "practice-...") must be null in PostgreSQL to avoid foreign key errors.
+    let validSessionId = null;
+    if (sessionId && !sessionId.startsWith('practice-')) {
+      try {
+        const sessionRecord = await prisma.interviewSession.findUnique({
+          where: { id: sessionId },
+          select: { id: true, problemId: true },
+        });
+        if (sessionRecord) {
+          validSessionId = sessionRecord.id;
+          if (!problemId && sessionRecord.problemId) {
+            problemId = sessionRecord.problemId;
+          }
+        }
+      } catch (_) {
+        validSessionId = null;
       }
     }
+
+    // Resolve problemId if missing (fallback to default problem)
     if (!problemId) {
       const defaultProblem = await prisma.problem.findFirst();
       if (defaultProblem) {
@@ -42,8 +53,11 @@ router.post('/', authenticateToken, async (req, res) => {
     let testCasesToRun = [];
 
     if (problemId) {
-      problem = await prisma.problem.findUnique({
-        where: { id: problemId },
+      // Find problem by ID or slug
+      problem = await prisma.problem.findFirst({
+        where: {
+          OR: [{ id: problemId }, { slug: problemId }],
+        },
         include: {
           testCases: {
             orderBy: { order: 'asc' },
@@ -54,6 +68,8 @@ router.post('/', authenticateToken, async (req, res) => {
       if (!problem) {
         return res.status(404).json({ error: 'Problem not found.' });
       }
+
+      problemId = problem.id;
 
       if (isCustomRun && customInput !== undefined) {
         testCasesToRun = [
@@ -66,10 +82,10 @@ router.post('/', authenticateToken, async (req, res) => {
         ];
       } else if (isCustomRun) {
         // Run only public test cases
-        testCasesToRun = problem.testCases.filter((tc) => !tc.isHidden);
+        testCasesToRun = (problem.testCases || []).filter((tc) => !tc.isHidden);
       } else {
         // Full evaluation: run all test cases (public + hidden)
-        testCasesToRun = problem.testCases;
+        testCasesToRun = problem.testCases || [];
       }
     } else if (customInput !== undefined) {
       testCasesToRun = [
@@ -82,12 +98,24 @@ router.post('/', authenticateToken, async (req, res) => {
       ];
     }
 
+    // Ensure at least one testcase runs
+    if (testCasesToRun.length === 0) {
+      testCasesToRun = [
+        {
+          id: 'default-run',
+          input: customInput !== undefined ? customInput : '',
+          expectedOutput: '',
+          isHidden: false,
+        },
+      ];
+    }
+
     // 1. Create Submission record in PostgreSQL
     const submission = await prisma.submission.create({
       data: {
         userId: req.user.id,
         problemId: problem ? problem.id : problemId,
-        sessionId: sessionId || null,
+        sessionId: validSessionId, // Foreign key safe: null for practice rooms
         code,
         language: language.toLowerCase(),
         status: 'QUEUED',
@@ -105,17 +133,17 @@ router.post('/', authenticateToken, async (req, res) => {
     const jobPayload = {
       submissionId: submission.id,
       userId: req.user.id,
-      sessionId: sessionId || null,
+      sessionId: sessionId || null, // Keep room identifier for WebSocket live broadcast
       code,
       language: language.toLowerCase(),
       timeLimitMs: problem?.timeLimitMs || 3000,
       memoryLimitMb: problem?.memoryLimitMb || 128,
       isCustomRun: !!isCustomRun,
       testCases: testCasesToRun.map((tc) => ({
-        id: tc.id,
-        input: tc.input,
-        expectedOutput: tc.expectedOutput,
-        isHidden: tc.isHidden,
+        id: tc.id || 'tc',
+        input: tc.input || '',
+        expectedOutput: tc.expectedOutput || '',
+        isHidden: !!tc.isHidden,
       })),
     };
 
@@ -129,7 +157,7 @@ router.post('/', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Submission queue error:', error);
-    return res.status(500).json({ error: 'Failed to enqueue code submission.' });
+    return res.status(500).json({ error: error.message || 'Failed to enqueue code submission.' });
   }
 });
 
